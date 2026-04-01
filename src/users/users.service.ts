@@ -5,6 +5,7 @@ import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import { unlink } from 'fs/promises';
 import { ConflictException } from '@nestjs/common';
+import { paginate } from 'src/common/utils/pagination.utils';
 export class UsersService {
   constructor(
     @InjectRepository(User)
@@ -41,8 +42,18 @@ export class UsersService {
     }
   }
 
-  findAll() {
-    return `This action returns all users`;
+  findAll(query: { page?: number; limit?: number; search?: string }) {
+    const { page, limit, search } = query;
+    const queryBuilder = this.userRepository.createQueryBuilder('user');
+    if (search) {
+      // ใช้ ILIKE สำหรับการค้นหาแบบไม่สนใจตัวพิมพ์เล็ก-ใหญ่ (PostgreSQL)
+      queryBuilder.where(
+        '(user.name ILIKE :search OR user.email ILIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+    queryBuilder.orderBy('user.createdAt', 'DESC');
+    return paginate(queryBuilder, { page, limit });
   }
 
   findOne(id: number) {
