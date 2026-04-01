@@ -12,6 +12,7 @@ import * as bcrypt from 'bcrypt'; // Import bcrypt for hashing passwords
 import { Task } from 'src/task/entities/task.entity';
 import { Label } from 'src/label/entities/label.entity';
 import { Comment } from 'src/task/entities/comment.entity';
+import { Exclude } from 'class-transformer';
 export enum UserRole {
   USER = 'user',
   ADMIN = 'admin',
@@ -27,6 +28,7 @@ export class User {
   @Column({ unique: true })
   email: string;
 
+  @Exclude() //
   @Column({ select: false })
   password: string;
 
@@ -36,6 +38,7 @@ export class User {
   @Column({ nullable: true })
   avatar: string;
 
+  @Exclude() //
   @Column({ type: 'text', nullable: true, select: false })
   refreshToken: string;
 
