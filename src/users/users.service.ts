@@ -1,4 +1,3 @@
-import { Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -10,8 +9,18 @@ export class UsersService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
   ) {}
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
+  async create(createUserDto: CreateUserDto): Promise<User> {
+    // ตรวจสอบ email นี้ว่ามีอยู่ใน ตาราง ของ users แล้วหรือยัง
+    const existingUser = await this.userRepository.findOne({
+      where: { email: createUserDto.email },
+    });
+    if (existingUser) {
+      throw new Error('อีเมลนี้มีอยู่แล้ว');
+    }
+    // สร้าง user โดย entity จะทำ Hash Password ให้เองผ่าน @BeforeInsert
+    const user = this.userRepository.create(createUserDto);
+    // บันทึกข้อมูลลงตาราง users
+    return await this.userRepository.save(user);
   }
 
   findAll() {
