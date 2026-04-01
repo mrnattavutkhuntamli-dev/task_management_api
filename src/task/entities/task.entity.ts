@@ -12,7 +12,9 @@ import {
   Index,
 } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
-
+import { Label } from 'src/label/entities/label.entity';
+import { Comment } from './comment.entity';
+import { Attachment } from './attachement.entity';
 export enum TaskStatus {
   TODO = 'todo',
   IN_PROGRESS = 'in_progress',
@@ -30,8 +32,8 @@ export enum TaskPriority {
 
 @Entity('tasks')
 export class Task {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column({ length: 200 })
   title: string;
@@ -39,8 +41,8 @@ export class Task {
   @Column({ type: 'text', nullable: true })
   description: string;
 
+  @Index()
   @Column({ type: 'enum', enum: TaskStatus, default: TaskStatus.TODO })
-  @Index() // สร้าง index เพื่อ query เร็วขึ้น
   status: TaskStatus;
 
   @Column({ type: 'enum', enum: TaskPriority, default: TaskPriority.MEDIUM })
@@ -49,15 +51,16 @@ export class Task {
   @Column({ type: 'date', nullable: true })
   dueDate: Date;
 
-  // Many-to-One: หลาย tasks เป็นของ user คนเดียว
+  // Owner Relationship
   @ManyToOne(() => User, (user) => user.ownedTasks, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'owner_id' })
   owner: User;
 
+  @Index()
   @Column({ name: 'owner_id' })
-  ownerId: number;
+  ownerId: string; // ต้องเป็น string เพื่อ match กับ User UUID
 
-  // Optional assignee
+  // Assignee Relationship
   @ManyToOne(() => User, (user) => user.assignedTasks, {
     nullable: true,
     onDelete: 'SET NULL',
@@ -65,19 +68,19 @@ export class Task {
   @JoinColumn({ name: 'assignee_id' })
   assignee: User;
 
+  @Index()
   @Column({ name: 'assignee_id', nullable: true })
-  assigneeId: number;
+  assigneeId: string;
 
-  // Many-to-Many: task มีได้หลาย labels, label มีได้หลาย tasks
-  @ManyToMany(() => Label, { cascade: true, eager: false })
+  // Labels Many-to-Many
+  @ManyToMany(() => Label, (label) => label.tasks, { cascade: true })
   @JoinTable({
     name: 'task_labels',
-    joinColumn: { name: 'task_id' },
-    inverseJoinColumn: { name: 'label_id' },
+    joinColumn: { name: 'task_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'label_id', referencedColumnName: 'id' },
   })
   labels: Label[];
 
-  // One-to-Many: task มีได้หลาย comments
   @OneToMany(() => Comment, (comment) => comment.task, { cascade: true })
   comments: Comment[];
 

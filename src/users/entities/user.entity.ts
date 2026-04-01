@@ -10,6 +10,8 @@ import {
 } from 'typeorm';
 import * as bcrypt from 'bcrypt'; // Import bcrypt for hashing passwords
 import { Task } from 'src/task/entities/task.entity';
+import { Label } from 'src/label/entities/label.entity';
+import { Comment } from 'src/task/entities/comment.entity';
 export enum UserRole {
   USER = 'user',
   ADMIN = 'admin',
@@ -17,7 +19,7 @@ export enum UserRole {
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
-  id: number;
+  id: string;
 
   @Column({ length: 150 })
   name: string;
@@ -25,7 +27,6 @@ export class User {
   @Column({ unique: true })
   email: string;
 
-  // select: false → password จะไม่ถูก SELECT ออกมาโดย default
   @Column({ select: false })
   password: string;
 
@@ -35,15 +36,13 @@ export class User {
   @Column({ nullable: true })
   avatar: string;
 
-  // Refresh token เก็บแบบ hashed
-  @Column({ nullable: true, select: false })
+  @Column({ type: 'text', nullable: true, select: false })
   refreshToken: string;
 
   @Column({ default: true })
   isActive: boolean;
 
   // Relationships
-  // TASK มีความสัมพันธ์ที่เก็บไปยัง USER ของ TASK และ OWNER ของ TASK
   @OneToMany(() => Task, (task) => task.owner)
   ownedTasks: Task[];
 
@@ -53,18 +52,19 @@ export class User {
   @OneToMany(() => Label, (label) => label.user)
   labels: Label[];
 
+  @OneToMany(() => Comment, (comment) => comment.author)
+  comments: Comment[];
+
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
 
-  // Hash password ก่อน insert/update อัตโนมัติ
   @BeforeInsert()
   @BeforeUpdate()
   async hashPassword() {
     if (this.password && !this.password.startsWith('$2b$')) {
-      // ตรวจสอบว่าถูก Hash ไปหรือยัง
       this.password = await bcrypt.hash(this.password, 10);
     }
   }
