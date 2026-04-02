@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
-import { extname } from 'path';
+import { extname, join } from 'path';
+import * as fs from 'fs';
 import { existsSync, mkdirSync } from 'fs';
 import { randomUUID } from 'crypto';
 import { Request } from 'express';
@@ -47,4 +48,14 @@ export const destinationPath = (path: string) => {
     }
     callback(null, path);
   };
+};
+
+/**
+ * Helper function สำหรับลบไฟล์ออกจาก Disk
+ */
+export const removeFile = (filename: string) => {
+  const filePath = join(process.cwd(), 'uploads/avatars', filename);
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+  }
 };
