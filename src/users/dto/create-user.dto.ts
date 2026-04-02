@@ -4,7 +4,6 @@ import {
   IsString,
   MinLength,
   IsOptional,
-  isEnum,
   IsEnum,
 } from 'class-validator';
 import { UserRole } from '../entities/user.entity';
