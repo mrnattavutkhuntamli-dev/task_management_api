@@ -11,16 +11,17 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from 'src/common/decorators/roles.decorators';
+import { Role } from 'src/common/enum/role.enum';
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
     // 1. ดึง Roles ที่เราแปะไว้ใน @Roles() ออกมา
-    const requiredRoles = this.reflector.getAllAndOverride<string[]>(
-      ROLES_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
     // 2. ถ้าไม่ได้ระบุ @Roles ไว้ที่ Route นั้นเลย (แปลว่าเป็น Public หรือต้องการแค่ Login) ให้ผ่านได้เลย
     if (!requiredRoles) {
