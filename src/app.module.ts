@@ -5,7 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UsersModule } from './users/users.module';
 import { TaskModule } from './task/task.module';
 import { LabelModule } from './label/label.module';
-
+import { AuthModule } from './auth/auth.module';
 @Module({
   imports: [
     //1. โหลดไฟล์ .env
@@ -33,6 +33,7 @@ import { LabelModule } from './label/label.module';
     UsersModule,
     TaskModule,
     LabelModule,
+    AuthModule,
   ],
   controllers: [],
   providers: [],
