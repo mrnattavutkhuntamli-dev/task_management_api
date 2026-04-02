@@ -75,6 +75,14 @@ export class UsersService {
     return user;
   }
 
+  async findByEmail(email: string): Promise<User | null> {
+    return await this.userRepository
+      .createQueryBuilder('user')
+      .addSelect('user.password') // 💡 บังคับให้ดึง password ออกมาด้วย แม้จะโดน Exclude ไว้
+      .where('user.email = :email', { email })
+      .getOne();
+  }
+
   /**
    * อัปเดตข้อมูลผู้ใช้ พร้อมจัดการไฟล์รูปภาพเก่า
    */
