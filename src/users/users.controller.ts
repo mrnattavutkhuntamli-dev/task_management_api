@@ -10,6 +10,7 @@ import {
   UploadedFile,
   Query,
   ParseUUIDPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -21,8 +22,13 @@ import {
   imageFileFilter,
 } from 'src/common/utils/file-upload.utils';
 import { diskStorage } from 'multer';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorators';
+import { Role } from 'src/common/enum/role.enum';
 
 @Controller('users')
+@UseGuards(JwtAuthGuard, RolesGuard) // 🔒 ล็อคทั้ง Controller: ต้อง Login และต้องเช็ค Role
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
@@ -52,6 +58,7 @@ export class UsersController {
   }
 
   @Get()
+  @Roles(Role.ADMIN, Role.HR)
   async findAll(
     @Query('page') page?: number,
     @Query('limit') limit?: number,
@@ -59,12 +66,12 @@ export class UsersController {
   ) {
     return this.usersService.findAll({ page, limit, search });
   }
-
+  @Roles(Role.ADMIN, Role.USER, Role.HR)
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.findOne(id);
   }
-
+  @Roles(Role.ADMIN, Role.HR)
   @Patch(':id')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -90,7 +97,7 @@ export class UsersController {
       data: user,
     };
   }
-
+  @Roles(Role.ADMIN, Role.HR)
   @Delete(':id')
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.remove(id);
