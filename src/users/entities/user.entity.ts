@@ -14,6 +14,7 @@ import { Label } from 'src/label/entities/label.entity';
 import { Comment } from 'src/task/entities/comment.entity';
 import { Exclude } from 'class-transformer';
 export enum UserRole {
+  HR = 'hr',
   USER = 'user',
   ADMIN = 'admin',
 }
