@@ -1,3 +1,10 @@
+/**
+ *  ไฟล์ auth ประกอบไปด้วย
+ *  modules auth ทั้งหมดสำหรับการตรวจสอบที่มีสิทธิ์ใน Role ที่อนุญาติให้เข้าถึงเส้นของ api
+ *  common/decorators/roles.decorators.ts ที่สร้างคำสั่งให้ตรวจสอบว่ามีสิทธิ์ใน Role ที่อนุญาติให้เข้าถึงเส้นของ api
+ *  common/enum/role.enum.ts ที่สร้างคำสั่งให้ตรวจสอบว่ามีสิทธิ์ใน Role ที่อนุญาติให้เข้าถึงเส้นของ api
+ */
+
 import { Module } from '@nestjs/common';
 import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
