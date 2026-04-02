@@ -22,7 +22,6 @@ export class RolesGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
-
     // 2. ถ้าไม่ได้ระบุ @Roles ไว้ที่ Route นั้นเลย (แปลว่าเป็น Public หรือต้องการแค่ Login) ให้ผ่านได้เลย
     if (!requiredRoles) {
       return true;
@@ -30,7 +29,7 @@ export class RolesGuard implements CanActivate {
 
     // 3. ดึงข้อมูล User (ซึ่ง JwtStrategy แปะมาให้ใน Request แล้ว)
     const { user } = context.switchToHttp().getRequest();
-
+    console.log(user);
     // 4. ตรวจสอบว่า User มี Role ตรงกับที่กำหนดไว้ไหม
     const hasRole = requiredRoles.some((role) => user.role === role);
 

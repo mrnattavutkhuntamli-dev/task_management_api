@@ -1,7 +1,7 @@
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable } from '@nestjs/common';
-
+import { ConfigService } from '@nestjs/config'; // 💡 1. ต้อง Import ConfigService มาด้วย
 // 💡 สร้าง Interface เพื่อบอกว่าใน Token ของเรามีข้อมูลอะไรบ้าง
 interface JwtPayload {
   sub: string;
@@ -11,11 +11,11 @@ interface JwtPayload {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor() {
+  constructor(private configService: ConfigService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: 'secret',
+      secretOrKey: configService.get<string>('JWT_ACCESS_SECRET')!,
     });
   }
 
