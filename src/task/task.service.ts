@@ -5,6 +5,14 @@ import { Task } from './entities/task.entity';
 import { Label } from 'src/label/entities/label.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import { Role } from 'src/common/enum/role.enum';
+interface RequestWithUser extends Request {
+  user: {
+    userId: string;
+    email: string;
+    role: string;
+  };
+}
 @Injectable()
 export class TaskService {
   constructor(
@@ -35,8 +43,49 @@ export class TaskService {
     return await this.taskRepository.save(task);
   }
 
-  findAll() {
-    return `This action returns all task`;
+  async findAll(
+    queryOptions: { page: number; limit: number; search?: string },
+    req: RequestWithUser,
+  ) {
+    const { page, limit, search } = queryOptions;
+    const skip = (page - 1) * limit;
+    const query = this.taskRepository
+      .createQueryBuilder('task')
+      .leftJoin('task.labels', 'labels')
+      .addSelect(['labels.id', 'labels.name', 'labels.color'])
+      .leftJoin('task.assignee', 'assignee')
+      .addSelect(['assignee.id', 'assignee.name'])
+      .leftJoin('task.owner', 'owner')
+      .addSelect(['owner.id', 'owner.name', 'owner.email']);
+
+    if (req.user.role === 'admin') {
+      query.andWhere(
+        '(task.owner_id = :userId OR task.assignee_id = :userId)',
+        { userId: req.user.userId },
+      );
+    }
+
+    if (search) {
+      query.andWhere(
+        '(task.title ILIKE :search OR task.description ILIKE :search)',
+        { search: `%${search}%` }, // ILIKE สำหรับ Postgres (Case-insensitive)
+      );
+    }
+
+    // 4. Pagination & Sorting
+    query.orderBy('task.createdAt', 'DESC').skip(skip).take(limit);
+    const [items, total] = await query.getManyAndCount();
+
+    return {
+      items,
+      meta: {
+        totalItems: total,
+        itemCount: items.length,
+        itemsPerPage: limit,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+      },
+    };
   }
 
   findOne(id: number) {
