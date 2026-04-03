@@ -10,6 +10,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
+  DeleteDateColumn,
 } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 import { Label } from 'src/label/entities/label.entity';
@@ -48,11 +49,14 @@ export class Task {
   @Column({ type: 'enum', enum: TaskPriority, default: TaskPriority.MEDIUM })
   priority: TaskPriority;
 
-  @Column({ type: 'date', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   dueDate: Date;
 
   // Owner Relationship
-  @ManyToOne(() => User, (user) => user.ownedTasks, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, (user) => user.ownedTasks, {
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  })
   @JoinColumn({ name: 'owner_id' })
   owner: User;
 
@@ -64,6 +68,7 @@ export class Task {
   @ManyToOne(() => User, (user) => user.assignedTasks, {
     nullable: true,
     onDelete: 'SET NULL',
+    onUpdate: 'CASCADE',
   })
   @JoinColumn({ name: 'assignee_id' })
   assignee: User;
@@ -73,7 +78,7 @@ export class Task {
   assigneeId: string;
 
   // Labels Many-to-Many
-  @ManyToMany(() => Label, (label) => label.tasks, { cascade: true })
+  @ManyToMany(() => Label, (label) => label.tasks, { onDelete: 'CASCADE' }) // ถ้าลบ task ให้ความสัมพันธ์ในตารางกลางหายไป
   @JoinTable({
     name: 'task_labels',
     joinColumn: { name: 'task_id', referencedColumnName: 'id' },
@@ -81,17 +86,22 @@ export class Task {
   })
   labels: Label[];
 
-  @OneToMany(() => Comment, (comment) => comment.task, { cascade: true })
+  @OneToMany(() => Comment, (comment) => comment.task, {
+    cascade: ['insert', 'update'],
+  })
   comments: Comment[];
 
   @OneToMany(() => Attachment, (attachment) => attachment.task, {
-    cascade: true,
+    cascade: ['insert', 'update'],
   })
   attachments: Attachment[];
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
+
+  @DeleteDateColumn({ type: 'timestamp', select: false })
+  deletedAt: Date;
 }
