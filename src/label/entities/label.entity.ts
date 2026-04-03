@@ -11,23 +11,26 @@ import { User } from 'src/users/entities/user.entity';
 import { Task } from 'src/task/entities/task.entity';
 @Entity('labels')
 export class Label {
-  @PrimaryGeneratedColumn()
-  id: number; // Label ใช้เป็น number ตามที่คุณวางแผนไว้
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @Column()
+  @Column({ unique: true })
   name: string;
 
-  @Column({ default: '#ffffff' })
+  @Column({ default: '#666666' }) // 💡 เก็บเป็น Hex Color เช่น #FF5733
   color: string;
 
-  // แก้ไขตรงนี้: เพิ่ม type : User เพื่อให้ TS มั่นใจ
+  @Column({ nullable: true })
+  description: string;
+
+  @ManyToMany(() => Task, (task) => task.labels)
+  tasks: Task[];
+
+  // ใครเป็นคนสร้าง Label นี้ (เผื่อเป็น Label เฉพาะส่วนตัว)
   @ManyToOne(() => User, (user: User) => user.labels, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
 
   @Column({ name: 'user_id' })
   userId: string; // UUID จาก User
-
-  @ManyToMany(() => Task, (task) => task.labels)
-  tasks: Task[];
 }
