@@ -1,15 +1,34 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateLabelDto } from './dto/create-label.dto';
 import { UpdateLabelDto } from './dto/update-label.dto';
-
+import { Label } from './entities/label.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 @Injectable()
 export class LabelService {
-  create(createLabelDto: CreateLabelDto) {
-    return 'This action adds a new label';
+  constructor(
+    @InjectRepository(Label)
+    private readonly labelRepository: Repository<Label>,
+  ) {}
+  async create(createLabelDto: CreateLabelDto, userId: string) {
+    const existingLabel = await this.labelRepository.findOne({
+      where: { name: createLabelDto.name, userId: userId },
+    });
+    if (existingLabel) {
+      throw new BadRequestException('มีชื่อนี้อยู่แล้ว');
+    }
+    const label = this.labelRepository.create({
+      ...createLabelDto,
+      userId,
+    });
+    return await this.labelRepository.save(label);
   }
 
-  findAll() {
-    return `This action returns all label`;
+  async findAll(userId: string) {
+    return await this.labelRepository.find({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+    });
   }
 
   findOne(id: number) {

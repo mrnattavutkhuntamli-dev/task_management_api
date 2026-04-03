@@ -5,6 +5,8 @@ import {
   ManyToOne,
   ManyToMany,
   JoinColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 
 import { User } from 'src/users/entities/user.entity';
@@ -33,4 +35,10 @@ export class Label {
 
   @Column({ name: 'user_id' })
   userId: string; // UUID จาก User
+
+  @CreateDateColumn({ type: 'timestamp' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ type: 'timestamp' })
+  updatedAt: Date;
 }
