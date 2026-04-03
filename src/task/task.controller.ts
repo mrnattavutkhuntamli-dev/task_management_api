@@ -23,11 +23,11 @@ interface RequestWithUser extends Request {
 }
 
 @Controller('task')
+@UseGuards(JwtAuthGuard) // 🔒 มั่นใจว่าต้อง Login ก่อนถึงจะเจอ req.user
 export class TaskController {
   constructor(private readonly taskService: TaskService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard) // 🔒 มั่นใจว่าต้อง Login ก่อนถึงจะเจอ req.user
   create(
     @Body() createTaskDto: CreateTaskDto,
     @Request() req: RequestWithUser,

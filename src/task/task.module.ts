@@ -5,10 +5,10 @@ import { Comment } from './entities/comment.entity';
 import { Attachment } from './entities/attachement.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Task } from './entities/task.entity';
-
+import { Label } from 'src/label/entities/label.entity';
 @Module({
-  imports: [TypeOrmModule.forFeature([Task, Comment, Attachment])],
+  imports: [TypeOrmModule.forFeature([Task, Comment, Attachment, Label])],
   controllers: [TaskController],
-  providers: [TaskService, Comment, Attachment],
+  providers: [TaskService],
 })
 export class TaskModule {}
