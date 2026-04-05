@@ -2,8 +2,10 @@ import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { join } from 'path';
+import { NestExpressApplication } from '@nestjs/platform-express';
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // เปิดใช้งาน Validation ทั่วทั้ง App
   app.useGlobalPipes(
@@ -17,6 +19,10 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
   // 3. 💡 เพิ่มตรงนี้: ใช้ TransformInterceptor เพื่อจัด Format Response ให้สวยงาม
   app.useGlobalInterceptors(new TransformInterceptor());
+
+  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+    prefix: '/uploads/',
+  });
   // Perfix สำหรับ API ที่ใช้งานกับ NestJS
   app.setGlobalPrefix('api/v1');
   await app.listen(process.env.PORT ?? 3000);
