@@ -3,7 +3,7 @@ import { extname, join } from 'path';
 import * as fs from 'fs';
 import { existsSync, mkdirSync } from 'fs';
 import { randomUUID } from 'crypto';
-import { Request } from 'express';
+import { Request, Express } from 'express';
 
 // 1. Logic สำหรับการกรองเฉพาะรูปภาพ
 export const imageFileFilter = (
@@ -58,4 +58,38 @@ export const removeFile = (filename: string) => {
   if (fs.existsSync(filePath)) {
     fs.unlinkSync(filePath);
   }
+};
+
+export const allFileFilter = (
+  req: Request,
+  file: Express.Multer.File,
+  callback: (error: Error | null, acceptFile: boolean) => void,
+) => {
+  if (!file.mimetype.match(/\/(jpg|jpeg|png|pdf)$/)) {
+    return callback(
+      new BadRequestException(
+        'รองรับเฉพาะไฟล์รูปภาพ (jpg, jpeg, png , pdf) เท่านั้น!',
+      ),
+      false,
+    );
+  }
+  callback(null, true);
+};
+
+export const deletePhysicalFiles = (
+  filesOrPaths: (Express.Multer.File | string)[],
+) => {
+  filesOrPaths.forEach((item) => {
+    // 💡 เช็คว่าถ้าเป็น string ให้ใช้ค่านั้นเลย ถ้าเป็น object ให้ดึง .path ออกมา
+    const filePath = typeof item === 'string' ? item : item.path;
+
+    try {
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    } catch (err) {
+      // พ่น log ไว้ดูเฉยๆ ไม่ให้กระทบ flow หลัก
+      console.error(`Failed to delete file at ${filePath}:`, err);
+    }
+  });
 };
