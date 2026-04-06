@@ -16,6 +16,8 @@ import { User } from 'src/users/entities/user.entity';
 import { Label } from 'src/label/entities/label.entity';
 import { Comment } from './comment.entity';
 import { Attachment } from './attachement.entity';
+import { StatusTask } from 'src/status_task/entities/status_task.entity';
+import { PriorityTask } from 'src/priority_task/entities/priority_task.entity';
 export enum TaskStatus {
   TODO = 'todo',
   IN_PROGRESS = 'in_progress',
@@ -42,12 +44,23 @@ export class Task {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Index()
-  @Column({ type: 'enum', enum: TaskStatus, default: TaskStatus.TODO })
-  status: TaskStatus;
+  @ManyToOne(() => StatusTask, (status) => status.tasks, {
+    eager: false, // แนะนำให้เป็น false แล้วไป .leftJoinAndSelect ใน Service เอาเองจะไม่อืดครับ
+    onDelete: 'RESTRICT', // ป้องกันการลบ Status ทิ้งถ้ายังมี Task ใช้อยู่
+  })
+  @JoinColumn({ name: 'status_id' })
+  status: StatusTask;
 
-  @Column({ type: 'enum', enum: TaskPriority, default: TaskPriority.MEDIUM })
-  priority: TaskPriority;
+  @Index()
+  @Column({ name: 'status_id', type: 'int', nullable: false }) // ปกติ ID ของ Status มักเป็น number (int)
+  statusId: number;
+
+  @ManyToOne(() => PriorityTask, (priority) => priority.tasks)
+  @JoinColumn({ name: 'priority_id' })
+  priority: PriorityTask;
+
+  @Column({ name: 'priority_id', type: 'int' })
+  priorityId: number;
 
   @Column({ type: 'timestamp', nullable: true })
   dueDate: Date;

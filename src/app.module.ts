@@ -6,6 +6,8 @@ import { UsersModule } from './users/users.module';
 import { TaskModule } from './task/task.module';
 import { LabelModule } from './label/label.module';
 import { AuthModule } from './auth/auth.module';
+import { StatusTaskModule } from './status_task/status_task.module';
+import { PriorityTaskModule } from './priority_task/priority_task.module';
 @Module({
   imports: [
     //1. โหลดไฟล์ .env
@@ -34,6 +36,8 @@ import { AuthModule } from './auth/auth.module';
     TaskModule,
     LabelModule,
     AuthModule,
+    StatusTaskModule,
+    PriorityTaskModule,
   ],
   controllers: [],
   providers: [],

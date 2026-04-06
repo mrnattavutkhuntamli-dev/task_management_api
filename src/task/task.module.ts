@@ -10,5 +10,6 @@ import { Label } from 'src/label/entities/label.entity';
   imports: [TypeOrmModule.forFeature([Task, Comment, Attachment, Label])],
   controllers: [TaskController],
   providers: [TaskService],
+  exports: [TypeOrmModule],
 })
 export class TaskModule {}

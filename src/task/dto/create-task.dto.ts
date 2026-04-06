@@ -2,12 +2,11 @@ import {
   IsNotEmpty,
   IsString,
   IsOptional,
-  IsEnum,
   IsUUID,
   IsDateString,
   MaxLength,
+  IsNumber,
 } from 'class-validator';
-import { TaskStatus, TaskPriority } from '../entities/task.entity';
 export class CreateTaskDto {
   @IsNotEmpty({ message: 'กรุณาระบุหัวข้องาน' })
   @IsString()
@@ -19,12 +18,12 @@ export class CreateTaskDto {
   description?: string;
 
   @IsOptional()
-  @IsEnum(TaskStatus)
-  status?: TaskStatus;
+  @IsNumber() // 💡 เปลี่ยนจาก Enum เป็น Number
+  statusId?: number;
 
   @IsOptional()
-  @IsEnum(TaskPriority)
-  priority?: TaskPriority;
+  @IsNumber() // 💡 เปลี่ยนจาก Enum เป็น Number
+  priorityId?: number;
 
   @IsOptional()
   @IsDateString()

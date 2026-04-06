@@ -33,6 +33,7 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
+  @Roles(Role.ADMIN, Role.HR)
   @UseInterceptors(
     FileInterceptor('file', {
       // ชื่อ Field ใน Postman ต้องชื่อ 'file'
@@ -97,8 +98,9 @@ export class UsersController {
       data: user,
     };
   }
-  @Roles(Role.ADMIN, Role.HR)
+
   @Delete(':id')
+  @Roles(Role.ADMIN, Role.HR)
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.remove(id);
   }

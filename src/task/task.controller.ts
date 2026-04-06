@@ -28,6 +28,12 @@ import { CreateTaskCommentDto } from './dto/create-task-comment';
 import { UpdateTaskCommentDto } from './dto/update-task-comment';
 import { diskStorage } from 'multer';
 
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+
+import { Roles } from 'src/common/decorators/roles.decorators';
+import { Role } from 'src/common/enum/role.enum';
+import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
+
 interface RequestWithUser extends Request {
   user: {
     userId: string;
@@ -37,7 +43,7 @@ interface RequestWithUser extends Request {
 }
 
 @Controller('task')
-@UseGuards(JwtAuthGuard) // 🔒 มั่นใจว่าต้อง Login ก่อนถึงจะเจอ req.user
+@UseGuards(JwtAuthGuard, RolesGuard) // 🔒 มั่นใจว่าต้อง Login ก่อนถึงจะเจอ req.user
 export class TaskController {
   constructor(private readonly taskService: TaskService) {}
 
@@ -72,6 +78,20 @@ export class TaskController {
     @Request() req: RequestWithUser,
   ) {
     return this.taskService.update(id, updateTaskDto, req);
+  }
+
+  // Update Status
+  @Roles(Role.ADMIN, Role.HR)
+  @Patch(':id/status')
+  updateStatus(
+    @Request() req: RequestWithUser,
+    @Param('id') id: string,
+    @Body() updateTaskStatusDto: UpdateTaskStatusDto,
+  ) {
+    console.log(req);
+    console.log(id);
+    console.log(updateTaskStatusDto);
+    return 'eeee';
   }
 
   @Delete(':id')

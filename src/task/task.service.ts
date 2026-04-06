@@ -38,11 +38,13 @@ export class TaskService {
   ) {}
 
   async create(createTaskDto: CreateTaskDto, ownerId: string) {
-    const { labelIds, ...taskData } = createTaskDto;
+    const { statusId, priorityId, labelIds, ...taskData } = createTaskDto;
 
     // สร้าง Instance ของ task พร้อมผูก ownerId ว่าใครเป็นเจ้าของ
     const task = this.taskRepository.create({
       ...taskData,
+      statusId: statusId ?? 1,
+      priorityId: priorityId ?? 2,
       ownerId,
     });
     // 2. ถ้ามี labelIds ส่งมา ให้ไปดึง Entity ของ Label มาใส่
@@ -96,16 +98,11 @@ export class TaskService {
 
     const query = this.taskRepository
       .createQueryBuilder('task')
-      .select([
-        'task.id',
-        'task.title',
-        'task.status',
-        'task.priority',
-        'task.dueDate',
-        'task.createdAt',
-      ])
+      .select(['task.id', 'task.title', 'task.dueDate', 'task.createdAt'])
       .leftJoin('task.labels', 'labels')
       .addSelect(['labels.id', 'labels.name', 'labels.color'])
+      .leftJoinAndSelect('task.status', 'status')
+      .leftJoinAndSelect('task.priority', 'priority')
       .leftJoin('task.assignee', 'assignee')
       .addSelect(['assignee.id', 'assignee.name'])
       .leftJoin('task.owner', 'owner')
