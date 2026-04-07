@@ -156,6 +156,23 @@ export class UsersService {
     }
   }
 
+  /**
+   *  อัพเดท Token สำหรับรีเซ็ตรหัสผ่านใหม่
+   * @param id
+   * @returns
+   */
+  async updateResetToken(id: string, token: string, expires: Date) {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException(`ไม่พบ User ID: ${id}`);
+    }
+    // 2. อัปเดตข้อมูล Token และเวลาหมดอายุ
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = expires;
+
+    // 3. บันทึกการเปลี่ยนแปลง
+    return await this.userRepository.save(user);
+  }
   async remove(id: string) {
     // 1. ค้นหาข้อมูล User พร้อมข้อมูล avatar ก่อนลบ
     const user = await this.userRepository.findOne({ where: { id } });
