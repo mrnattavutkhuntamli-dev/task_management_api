@@ -108,6 +108,7 @@ export class UsersService {
    * อัปเดตข้อมูลผู้ใช้ พร้อมจัดการไฟล์รูปภาพเก่า
    */
   async update(
+    req: RequestWithUser,
     id: string,
     updateUserDto: UpdateUserDto,
     file?: Express.Multer.File,
@@ -118,6 +119,14 @@ export class UsersService {
       // ถ้ามีรูปใหม่ส่งมาแต่หา User ไม่เจอ ต้องลบรูปใหม่ทิ้งทันที่
       if (file) removeFile(file.filename);
       throw new NotFoundException(`ไม่พบผู้ใช้ที่ระบุอีเมลนี้ ${id}`);
+    }
+
+    const isPrivileged = [Role.ADMIN, Role.HR].includes(req.user.role as Role);
+    const isOwner = req.user.userId === user.id;
+
+    if (!isPrivileged && !isOwner) {
+      if (file) removeFile(file.filename); // ลบไฟล์ที่อัปโหลดมาทิ้งถ้าไม่มีสิทธิ์แก้
+      throw new ForbiddenException('คุณไม่มีสิทธิ์แก้ไขข้อมูลผู้อื่น');
     }
 
     const oldAvatar = user.avatar; // เก็บ path รูปเก่าไว้ก่อน
@@ -139,8 +148,10 @@ export class UsersService {
     } catch (error) {
       // ถ้าเกิด Error ระหว่าง save เช่น email ช้ำ หรือ อื่นๆ จะต้องลบรูปใหม่ที่เพิ่งอัปโหลดมาทิ้ง
       if (file) removeFile(file.filename);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown Error';
       throw new InternalServerErrorException(
-        'เกิดข้อผิดพลาดในการอัปเดตข้อมูล ' + error,
+        'เกิดข้อผิดพลาด: ' + errorMessage, // 👈
       );
     }
   }

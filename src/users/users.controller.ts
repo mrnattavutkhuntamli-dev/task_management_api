@@ -84,7 +84,7 @@ export class UsersController {
   ) {
     return this.usersService.findOne(id, req);
   }
-  @Roles(Role.ADMIN, Role.HR)
+  @Roles(Role.ADMIN, Role.HR, Role.USER)
   @Patch(':id')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -99,11 +99,12 @@ export class UsersController {
     }),
   )
   async update(
+    @Request() req: RequestWithUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateUserDto: UpdateUserDto,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    const user = await this.usersService.update(id, updateUserDto, file);
+    const user = await this.usersService.update(req, id, updateUserDto, file);
     return {
       statusCode: 200,
       message: 'อัพเดทบัญชีผู้ใช้สำเร็จ',
