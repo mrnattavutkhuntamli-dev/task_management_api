@@ -33,6 +33,7 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorators';
 import { Role } from 'src/common/enum/role.enum';
 import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 
 interface RequestWithUser extends Request {
   user: {
@@ -43,15 +44,15 @@ interface RequestWithUser extends Request {
 }
 
 @Controller('task')
-@UseGuards(JwtAuthGuard, RolesGuard) // 🔒 มั่นใจว่าต้อง Login ก่อนถึงจะเจอ req.user
+@UseGuards(JwtAuthGuard, RolesGuard, ThrottlerGuard) // 🔒 มั่นใจว่าต้อง Login ก่อนถึงจะเจอ req.user
 export class TaskController {
   constructor(private readonly taskService: TaskService) {}
 
   @Get()
   findAll(
     @Request() req: RequestWithUser,
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
+    @Query('page', new ParseIntPipe({ optional: true })) page: number = 1,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit: number = 10,
     @Query('search') search?: string,
   ) {
     return this.taskService.findAll({ page, limit, search }, req);
@@ -62,6 +63,7 @@ export class TaskController {
     return this.taskService.findOne(id, req);
   }
 
+  @Throttle({ default: { limit: 15, ttl: 60000 } }) // เช่น ยอมให้ลองผิดลองถูกได้แค่ 5 ครั้งต่อนาที
   @Post()
   create(
     @Body() createTaskDto: CreateTaskDto,
@@ -69,6 +71,17 @@ export class TaskController {
   ) {
     const user = req.user;
     return this.taskService.create(createTaskDto, user.userId);
+  }
+
+  // มอบหมายงาน
+  @Patch(':id/assign/:userId')
+  assignTask(
+    @Request() req: RequestWithUser,
+    @Param('id') taskId: string,
+    @Param('userId') userId: string,
+  ) {
+    // แนะนำให้ส่ง userId ของคนสั่ง (req.user.userId) ไปเช็คสิทธิ์ใน Service ด้วย
+    return this.taskService.assignTask(req, taskId, userId);
   }
 
   @Patch(':id')
@@ -100,7 +113,7 @@ export class TaskController {
   }
 
   // Comments
-
+  @Throttle({ default: { limit: 15, ttl: 60000 } }) // เช่น ยอมให้ลองผิดลองถูกได้แค่ 5 ครั้งต่อนาที
   @Post(':id/comments')
   addComment(
     @Request() req: RequestWithUser,
@@ -116,7 +129,7 @@ export class TaskController {
 
   @Patch('comments/:commentId')
   updateComment(
-    @Param('commentId') commentId: number,
+    @Param('commentId', ParseIntPipe) commentId: number,
     @Body() updateTaskCommentDto: UpdateTaskCommentDto,
     @Request() req: RequestWithUser,
   ) {
@@ -128,7 +141,10 @@ export class TaskController {
   }
 
   @Delete('comments/:id')
-  removeComment(@Param('id') id: number, @Request() req: RequestWithUser) {
+  removeComment(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: RequestWithUser,
+  ) {
     return this.taskService.removeComment(id, req.user.userId, req.user.role);
   }
 

@@ -15,6 +15,7 @@ import { In, Repository } from 'typeorm';
 import { CreateTaskCommentDto } from './dto/create-task-comment';
 import { UpdateTaskCommentDto } from './dto/update-task-comment';
 import { deletePhysicalFiles } from 'src/common/utils/file-upload.utils';
+import { User } from 'src/users/entities/user.entity';
 interface RequestWithUser extends Request {
   user: {
     userId: string;
@@ -35,6 +36,8 @@ export class TaskService {
 
     @InjectRepository(Attachment)
     private readonly attachmentRepository: Repository<Attachment>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
   ) {}
 
   async create(createTaskDto: CreateTaskDto, ownerId: string) {
@@ -87,6 +90,30 @@ export class TaskService {
         },
       },
     });
+  }
+
+  async assignTask(req: RequestWithUser, taskId: string, userId: string) {
+    const task = await this.taskRepository.findOne({ where: { id: taskId } });
+    if (!task) {
+      throw new NotFoundException(`ไม่พบรายการงานที่ระบุ (ID: ${taskId})`);
+    }
+    if (task.ownerId !== req.user.userId && req.user.role !== 'admin') {
+      throw new ForbiddenException('คุณไม่มีสิทธิ์มอบหมายงานนี้ให้ผู้อื่น');
+    }
+    if (task.assigneeId) {
+      throw new BadRequestException(
+        'กำลังตั้งค่าผู้วาร์ด้วยงานไปยังผู้ใช้ที่กำหนดไว้แล้ว',
+      );
+    }
+    const assignee = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+    if (!assignee) {
+      throw new NotFoundException(`ไม่พบผู้ใช้ที่ระบุอีเมลนี้ ${userId}`);
+    }
+    // สร้าง Instance ของ task พร้อมผู้ใช้ที่วาร์ด้วย
+    task.assignee = assignee;
+    return await this.taskRepository.save(task);
   }
 
   async findAll(

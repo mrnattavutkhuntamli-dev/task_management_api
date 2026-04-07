@@ -36,34 +36,34 @@ export enum TaskPriority {
 @Entity('tasks')
 export class Task {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ length: 200 })
-  title: string;
+  title!: string;
 
   @Column({ type: 'text', nullable: true })
-  description: string;
+  description!: string;
 
   @ManyToOne(() => StatusTask, (status) => status.tasks, {
     eager: false, // แนะนำให้เป็น false แล้วไป .leftJoinAndSelect ใน Service เอาเองจะไม่อืดครับ
     onDelete: 'RESTRICT', // ป้องกันการลบ Status ทิ้งถ้ายังมี Task ใช้อยู่
   })
   @JoinColumn({ name: 'status_id' })
-  status: StatusTask;
+  status!: StatusTask;
 
   @Index()
   @Column({ name: 'status_id', type: 'int', nullable: false }) // ปกติ ID ของ Status มักเป็น number (int)
-  statusId: number;
+  statusId!: number;
 
   @ManyToOne(() => PriorityTask, (priority) => priority.tasks)
   @JoinColumn({ name: 'priority_id' })
-  priority: PriorityTask;
+  priority!: PriorityTask;
 
   @Column({ name: 'priority_id', type: 'int' })
-  priorityId: number;
+  priorityId!: number;
 
   @Column({ type: 'timestamp', nullable: true })
-  dueDate: Date;
+  dueDate!: Date;
 
   // Owner Relationship
   @ManyToOne(() => User, (user) => user.ownedTasks, {
@@ -71,11 +71,11 @@ export class Task {
     onUpdate: 'CASCADE',
   })
   @JoinColumn({ name: 'owner_id' })
-  owner: User;
+  owner!: User;
 
   @Index()
   @Column({ name: 'owner_id' })
-  ownerId: string; // ต้องเป็น string เพื่อ match กับ User UUID
+  ownerId!: string; // ต้องเป็น string เพื่อ match กับ User UUID
 
   // Assignee Relationship
   @ManyToOne(() => User, (user) => user.assignedTasks, {
@@ -84,11 +84,11 @@ export class Task {
     onUpdate: 'CASCADE',
   })
   @JoinColumn({ name: 'assignee_id' })
-  assignee: User;
+  assignee!: User;
 
   @Index()
   @Column({ name: 'assignee_id', nullable: true })
-  assigneeId: string;
+  assigneeId!: string;
 
   // Labels Many-to-Many
   @ManyToMany(() => Label, (label) => label.tasks, { onDelete: 'CASCADE' }) // ถ้าลบ task ให้ความสัมพันธ์ในตารางกลางหายไป
@@ -97,24 +97,24 @@ export class Task {
     joinColumn: { name: 'task_id', referencedColumnName: 'id' },
     inverseJoinColumn: { name: 'label_id', referencedColumnName: 'id' },
   })
-  labels: Label[];
+  labels!: Label[];
 
   @OneToMany(() => Comment, (comment) => comment.task, {
     cascade: ['insert', 'update'],
   })
-  comments: Comment[];
+  comments!: Comment[];
 
   @OneToMany(() => Attachment, (attachment) => attachment.task, {
     cascade: ['insert', 'update'],
   })
-  attachments: Attachment[];
+  attachments!: Attachment[];
 
   @CreateDateColumn({ type: 'timestamp' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ type: 'timestamp' })
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @DeleteDateColumn({ type: 'timestamp', select: false })
-  deletedAt: Date;
+  deletedAt!: Date;
 }

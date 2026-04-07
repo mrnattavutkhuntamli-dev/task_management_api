@@ -6,8 +6,9 @@ import { Attachment } from './entities/attachement.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Task } from './entities/task.entity';
 import { Label } from 'src/label/entities/label.entity';
+import { User } from 'src/users/entities/user.entity';
 @Module({
-  imports: [TypeOrmModule.forFeature([Task, Comment, Attachment, Label])],
+  imports: [TypeOrmModule.forFeature([Task, Comment, Attachment, Label, User])],
   controllers: [TaskController],
   providers: [TaskService],
   exports: [TypeOrmModule],
