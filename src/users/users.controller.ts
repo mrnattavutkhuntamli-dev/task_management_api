@@ -27,6 +27,7 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorators';
 import { Role } from 'src/common/enum/role.enum';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 
 interface RequestWithUser extends Request {
   user: {
@@ -40,9 +41,10 @@ interface RequestWithUser extends Request {
 @UseGuards(JwtAuthGuard, RolesGuard) // 🔒 ล็อคทั้ง Controller: ต้อง Login และต้องเช็ค Role
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
-
+  @Throttle({ default: { limit: 15, ttl: 60000 } }) // เช่น ยอมให้ลองผิดลองถูกได้แค่ 5 ครั้งต่อนาที
+  @UseGuards(ThrottlerGuard) // ป้องกันการยิง Request ซ้ำๆ ถล่มเข้ามาในระบบ (Brute Force/Spam) เกินจำนวนที่เรากำหนดไว้ใน AppModule
   @Post()
-  // @Roles(Role.ADMIN, Role.HR)
+  @Roles(Role.ADMIN, Role.HR)
   @UseInterceptors(
     FileInterceptor('file', {
       // ชื่อ Field ใน Postman ต้องชื่อ 'file'
