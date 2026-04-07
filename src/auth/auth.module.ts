@@ -14,9 +14,15 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { StringValue } from 'ms';
+import { MailerModule } from '@nestjs-modules/mailer';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { User } from 'src/users/entities/user.entity';
+
 @Module({
   imports: [
+    TypeOrmModule.forFeature([User]),
     UsersModule,
+    MailerModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

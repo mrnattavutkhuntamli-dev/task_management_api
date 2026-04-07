@@ -21,49 +21,55 @@ export enum UserRole {
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ length: 150 })
-  name: string;
+  name!: string;
 
   @Column({ unique: true })
-  email: string;
+  email!: string;
 
   @Exclude() //
   @Column({ select: false })
-  password: string;
+  password!: string;
 
   @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
-  role: UserRole;
+  role!: UserRole;
 
   @Column({ nullable: true })
-  avatar: string;
+  avatar!: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  resetPasswordToken!: string | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  resetPasswordExpires!: Date | null;
 
   @Exclude() //
   @Column({ type: 'text', nullable: true, select: false })
-  refreshToken: string;
+  refreshToken!: string | null;
 
   @Column({ default: true })
-  isActive: boolean;
+  isActive!: boolean;
 
   // Relationships
   @OneToMany(() => Task, (task) => task.owner)
-  ownedTasks: Task[];
+  ownedTasks!: Task[];
 
   @OneToMany(() => Task, (task) => task.assignee)
-  assignedTasks: Task[];
+  assignedTasks!: Task[];
 
   @OneToMany(() => Label, (label) => label.user)
-  labels: Label[];
+  labels!: Label[];
 
   @OneToMany(() => Comment, (comment) => comment.author)
-  comments: Comment[];
+  comments!: Comment[];
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @BeforeInsert()
   @BeforeUpdate()
