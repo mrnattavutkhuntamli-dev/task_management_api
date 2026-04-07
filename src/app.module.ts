@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module';
 import { StatusTaskModule } from './status_task/status_task.module';
 import { PriorityTaskModule } from './priority_task/priority_task.module';
 import { MailerModule } from '@nestjs-modules/mailer';
+import { ThrottlerModule } from '@nestjs/throttler';
 @Module({
   imports: [
     //1. โหลดไฟล์ .env
@@ -52,6 +53,12 @@ import { MailerModule } from '@nestjs-modules/mailer';
         },
       }),
     }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000, // 1 นาที
+        limit: 10, // ยิงได้ไม่เกิน 10 ครั้งต่อนาที
+      },
+    ]),
     UsersModule,
     TaskModule,
     LabelModule,
