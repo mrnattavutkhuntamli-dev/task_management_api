@@ -8,6 +8,7 @@ import { LabelModule } from './label/label.module';
 import { AuthModule } from './auth/auth.module';
 import { StatusTaskModule } from './status_task/status_task.module';
 import { PriorityTaskModule } from './priority_task/priority_task.module';
+import { MailerModule } from '@nestjs-modules/mailer';
 @Module({
   imports: [
     //1. โหลดไฟล์ .env
@@ -30,6 +31,25 @@ import { PriorityTaskModule } from './priority_task/priority_task.module';
         autoLoadEntities: true,
         synchronize: true,
         // logging: true, // เปิดไว้ดู Log ตอนมันสร้าง Table ครับ
+      }),
+    }),
+    // โหลดตั้งค่า Mailer สำหรับ Resend
+    MailerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        transport: {
+          host: config.get<string>('MAIL_HOST'),
+          port: config.get<number>('MAIL_PORT'),
+          secure: config.get<boolean>('MAIL_SECURE'),
+          auth: {
+            user: config.get<string>('MAIL_USER'),
+            pass: config.get<string>('RESEND_API_KEY'),
+          },
+        },
+        defaults: {
+          from: config.get<string>('MAIL_FROM'),
+        },
       }),
     }),
     UsersModule,

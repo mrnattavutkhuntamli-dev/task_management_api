@@ -42,7 +42,7 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.HR)
+  // @Roles(Role.ADMIN, Role.HR)
   @UseInterceptors(
     FileInterceptor('file', {
       // ชื่อ Field ใน Postman ต้องชื่อ 'file'

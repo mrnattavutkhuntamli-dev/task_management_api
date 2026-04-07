@@ -22,10 +22,12 @@ async function bootstrap() {
   app.useGlobalInterceptors(new TransformInterceptor());
 
   const config = new DocumentBuilder()
-    .setTitle('Task Management API')
-    .setDescription('The Task Management API description')
+    .setTitle('Nak Drive: Task Management API') // ชื่อโปรเจกต์จริง
+    .setDescription(
+      'ระบบจัดการงานหลังบ้านสำหรับ Nak Drive รองรับการจัดการ Task, Labels และระบบยืนยันตัวตน',
+    )
     .setVersion('1.0')
-    .addTag('cats')
+    .addBearerAuth() // 👈 สำคัญ! เพื่อให้ Swagger มีปุ่มใส่ Token ไว้ทดสอบเส้นที่ต้อง Login
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);
