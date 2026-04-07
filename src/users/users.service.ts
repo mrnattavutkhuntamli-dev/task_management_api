@@ -6,11 +6,22 @@ import { Repository } from 'typeorm';
 import { unlink } from 'fs/promises';
 import {
   ConflictException,
+  ForbiddenException,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { paginate } from 'src/common/utils/pagination.utils';
 import { removeFile } from 'src/common/utils/file-upload.utils';
+import { Role } from 'src/common/enum/role.enum';
+
+interface RequestWithUser extends Request {
+  user: {
+    userId: string;
+    email: string;
+    role: string;
+  };
+}
+
 export class UsersService {
   constructor(
     @InjectRepository(User)
@@ -67,12 +78,22 @@ export class UsersService {
     return paginate(queryBuilder, { page, limit });
   }
 
-  async findOne(id: string) {
-    const user = await this.userRepository.findOne({ where: { id } });
-    if (!user) {
+  async findOne(id: string, req: RequestWithUser) {
+    const targetUser = await this.userRepository.findOne({ where: { id } });
+    if (!targetUser) {
       throw new NotFoundException(`ไม่พบผู้ใช้ที่ระบุอีเมลนี้ ${id}`);
     }
-    return user;
+    const isPrivilegedRole = [Role.ADMIN, Role.HR].includes(
+      req.user.role as Role,
+    );
+    const isOwner = req.user.userId === targetUser.id;
+    // 🛡️ ถ้า "ไม่ใช่ ADMIN/HR" และ "ไม่ใช่เจ้าของข้อมูล" -> สั่ง Forbidden ทันที
+    if (!isPrivilegedRole && !isOwner) {
+      throw new ForbiddenException(
+        'คุณไม่มีสิทธิ์เข้าถึงข้อมูลของผู้ใช้งานรายอื่น',
+      );
+    }
+    return targetUser;
   }
 
   async findByEmail(email: string): Promise<User | null> {

@@ -10,6 +10,7 @@ import {
   UploadedFile,
   Query,
   ParseUUIDPipe,
+  Request,
   UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
@@ -26,6 +27,14 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorators';
 import { Role } from 'src/common/enum/role.enum';
+
+interface RequestWithUser extends Request {
+  user: {
+    userId: string;
+    email: string;
+    role: string;
+  };
+}
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard) // 🔒 ล็อคทั้ง Controller: ต้อง Login และต้องเช็ค Role
@@ -67,10 +76,13 @@ export class UsersController {
   ) {
     return this.usersService.findAll({ page, limit, search });
   }
-  @Roles(Role.ADMIN, Role.USER, Role.HR)
   @Get(':id')
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.usersService.findOne(id);
+  @Roles(Role.ADMIN, Role.USER, Role.HR)
+  findOne(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.usersService.findOne(id, req);
   }
   @Roles(Role.ADMIN, Role.HR)
   @Patch(':id')

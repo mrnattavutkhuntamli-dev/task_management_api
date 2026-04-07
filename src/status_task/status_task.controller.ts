@@ -27,11 +27,13 @@ export class StatusTaskController {
   }
 
   @Get()
+  @Roles(Role.ADMIN, Role.HR)
   findAll() {
     return this.statusTaskService.findAll();
   }
 
   @Get(':id')
+  @Roles(Role.ADMIN, Role.HR, Role.USER)
   findOne(@Param('id') id: number) {
     return this.statusTaskService.findOne(+id);
   }

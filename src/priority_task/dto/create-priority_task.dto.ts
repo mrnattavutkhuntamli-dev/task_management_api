@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsLowercase,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class CreatePriorityTaskDto {
   @ApiProperty({
@@ -8,8 +14,8 @@ export class CreatePriorityTaskDto {
   })
   @IsString()
   @IsNotEmpty()
-  // @IsLowercase() // 💡 เพิ่มเพื่อให้ data consistency สวยงาม
-  key: string;
+  @IsLowercase() // 💡 เพิ่มเพื่อให้ data consistency สวยงาม
+  key!: string;
 
   @ApiProperty({
     example: 'กำลังดำเนินการ',
@@ -17,7 +23,7 @@ export class CreatePriorityTaskDto {
   })
   @IsString()
   @IsNotEmpty()
-  label: string;
+  label!: string;
 
   @ApiProperty({
     example: '#3b82f6',
@@ -27,4 +33,12 @@ export class CreatePriorityTaskDto {
   @IsString()
   @IsOptional()
   color?: string;
+
+  @ApiProperty({
+    example: 1,
+    description: 'ระดับความสำคัญมากขึ้นก่อน (เอาไว้ Sort งานด่วนขึ้นก่อน)',
+  })
+  @IsNumber()
+  @IsNotEmpty()
+  level!: number;
 }
