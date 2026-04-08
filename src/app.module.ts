@@ -11,6 +11,7 @@ import { PriorityTaskModule } from './priority_task/priority_task.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { ActivitiesModule } from './activities/activities.module';
 @Module({
   imports: [
     //1. โหลดไฟล์ .env
@@ -67,6 +68,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     LabelModule,
     StatusTaskModule,
     PriorityTaskModule,
+    ActivitiesModule,
   ],
   controllers: [],
   providers: [],

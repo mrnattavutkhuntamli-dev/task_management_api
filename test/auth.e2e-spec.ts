@@ -63,6 +63,18 @@ describe('AuthController (e2e)', () => {
     });
   });
 
+  describe('/auth/forgot-password (POST)', () => {
+    it('ควรส่งรหัสผ่านใหม่สำเร็จและจะตั้งค่ารหัสผ่านใหม่ใน DB', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/v1/auth/forgot-password')
+        .send({
+          email: 'mr.nattavut.khuntamli@gmail.com',
+        });
+      expect(response.status).toBe(201);
+      expect(response.body).toHaveProperty('message');
+    });
+  });
+
   describe('/auth/me (GET)', () => {
     it('ควรดึงข้อมูล Profile ได้เมื่อส่ง Token ที่ถูกต้อง', async () => {
       const response = await request(app.getHttpServer())

@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import { unlink } from 'fs/promises';
+import { ActivitiesService } from 'src/activities/activities.service';
 import {
   ConflictException,
   ForbiddenException,
@@ -26,6 +27,7 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly activitiesService: ActivitiesService,
   ) {}
   async create(
     createUserDto: CreateUserDto,
@@ -104,6 +106,13 @@ export class UsersService {
       .getOne();
   }
 
+  async findByID(id: string) {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException(`ไม่พบผู้ใช้ที่ระบุ ID: ${id}`);
+    }
+    return user;
+  }
   /**
    * อัปเดตข้อมูลผู้ใช้ พร้อมจัดการไฟล์รูปภาพเก่า
    */
@@ -130,6 +139,79 @@ export class UsersService {
     }
 
     const oldAvatar = user.avatar; // เก็บ path รูปเก่าไว้ก่อน
+    const oldData = {
+      name: user.name,
+      email: user.email,
+      avatar: oldAvatar,
+    };
+
+    try {
+      // 2. ถ้ามีการอัปโหลดรูปใหม่ ให้เตรียม path ใหม่
+      if (file) {
+        user.avatar = `/avatars/${file.filename}`;
+      }
+      // 3. Merge ข้อมูลจาก DTO เข้าไปใน Entity
+      Object.assign(user, updateUserDto);
+
+      // 4. บันทึกลง Database
+      const updatedUser = await this.userRepository.save(user);
+
+      // 5. บันทึกลงใน Log
+      await this.activitiesService.log({
+        action: 'UPDATE_PROFILE_DETAILS',
+        entityId: user.id,
+        oldData: oldData as Record<string, unknown>, // ป้องกันไว้ก่อน
+        newData: updateUserDto as unknown as Record<string, unknown>,
+        userId: req.user.userId,
+      });
+
+      // 5. 💡 หัวใจสำคัญ: ถ้าบันทึกสำเร็จ และมีรูปใหม่มา ให้ลบรูปเก่าทิ้ง (ถ้ามี)
+      if (file && oldAvatar) {
+        removeFile(oldAvatar.replace('/avatars/', ''));
+      }
+      return updatedUser;
+    } catch (error) {
+      // ถ้าเกิด Error ระหว่าง save เช่น email ช้ำ หรือ อื่นๆ จะต้องลบรูปใหม่ที่เพิ่งอัปโหลดมาทิ้ง
+      if (file) removeFile(file.filename);
+
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown Error';
+      throw new InternalServerErrorException(
+        'เกิดข้อผิดพลาด: ' + errorMessage, // 👈
+      );
+    }
+  }
+
+  async updateProfile(
+    req: RequestWithUser,
+    updateUserDto: UpdateUserDto,
+    file?: Express.Multer.File,
+  ) {
+    const id: string = req.user.userId;
+    // 1. ค้นหา User เดิมก่อน (ถ้าไม่เจอให้พ่น 404)
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      // ถ้ามีรูปใหม่ส่งมาแต่หา User ไม่เจอ ต้องลบรูปใหม่ทิ้งทันที่
+      if (file) removeFile(file.filename);
+      throw new NotFoundException(`ไม่พบผู้ใช้ที่ระบุอีเมลนี้ ${id}`);
+    }
+
+    const isPrivileged = [Role.ADMIN, Role.HR].includes(req.user.role as Role);
+    const isOwner = req.user.userId === user.id;
+
+    if (!isPrivileged && !isOwner) {
+      if (file) removeFile(file.filename); // ลบไฟล์ที่อัปโหลดมาทิ้งถ้าไม่มีสิทธิ์แก้
+      throw new ForbiddenException('คุณไม่มีสิทธิ์แก้ไขข้อมูลผู้อื่น');
+    }
+
+    const oldAvatar = user.avatar; // เก็บ path รูปเก่าไว้ก่อน
+
+    const oldData = {
+      name: user.name,
+      email: user.email,
+      avatar: oldAvatar,
+    };
+
     try {
       // 2. ถ้ามีการอัปโหลดรูปใหม่ ให้เตรียม path ใหม่
       if (file) {
@@ -139,6 +221,14 @@ export class UsersService {
       Object.assign(user, updateUserDto);
       // 4. บันทึกลง Database
       const updatedUser = await this.userRepository.save(user);
+
+      await this.activitiesService.log({
+        action: 'UPDATE_PROFILE_DETAILS',
+        entityId: user.id,
+        oldData: oldData as Record<string, unknown>, // ป้องกันไว้ก่อน
+        newData: updateUserDto as unknown as Record<string, unknown>,
+        userId: req.user.userId,
+      });
 
       // 5. 💡 หัวใจสำคัญ: ถ้าบันทึกสำเร็จ และมีรูปใหม่มา ให้ลบรูปเก่าทิ้ง (ถ้ามี)
       if (file && oldAvatar) {
@@ -166,13 +256,28 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException(`ไม่พบ User ID: ${id}`);
     }
+    // เก็บค่าเก่าไว้ก่อนเปลี่ยน เพื่อความแม่นยำของ Log
+    const oldExpires = user.resetPasswordExpires;
     // 2. อัปเดตข้อมูล Token และเวลาหมดอายุ
     user.resetPasswordToken = token;
     user.resetPasswordExpires = expires;
 
+    const updatedUser = await this.userRepository.save(user);
+    try {
+      await this.activitiesService.log({
+        action: 'REQUEST_RESET_PASSWORD',
+        entityId: user.id,
+        oldData: { expires: oldExpires },
+        newData: { expires: expires },
+        userId: id,
+      });
+    } catch (logError) {
+      console.error('Failed to record activity log:', logError);
+    }
     // 3. บันทึกการเปลี่ยนแปลง
-    return await this.userRepository.save(user);
+    return updatedUser;
   }
+
   async remove(id: string) {
     // 1. ค้นหาข้อมูล User พร้อมข้อมูล avatar ก่อนลบ
     const user = await this.userRepository.findOne({ where: { id } });
@@ -182,9 +287,24 @@ export class UsersService {
     }
     // 3. เก็บชื่อไฟล์รูปภาพไว้ (ถ้ามี)
     const avatarPath = user.avatar;
-    // 4. ลบข้อมูลออกจาก Database
-    await this.userRepository.remove(user);
+
+    await this.activitiesService.log({
+      action: 'DELETE_USER',
+      entityId: id,
+      oldData: {
+        email: user.email,
+        avatar: avatarPath,
+      } as Record<string, unknown>,
+      newData: {},
+      userId: id,
+    });
     // 5. 💡 หัวใจสำคัญ: ถ้าลบจาก DB สำเร็จ ให้ตามไปลบไฟล์รูปในโฟลเดอร์ด้วย
+    try {
+      // 4. ลบข้อมูลออกจาก Database
+      await this.userRepository.remove(user);
+    } catch (error) {
+      console.error('Failed to remove avatar file:', error);
+    }
     if (avatarPath) {
       // อย่าลืม import { removeFile } จาก utils นะครับ
       removeFile(avatarPath);

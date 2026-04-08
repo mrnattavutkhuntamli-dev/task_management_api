@@ -57,17 +57,39 @@ export class AuthService {
     await this.usersService.updateResetToken(user.id, token, expires);
 
     // ส่งเมลผ่าน Resend
-    const resetUrl = `http://localhost:3000/reset-password?token=${token}`;
+    const resetUrl = `http://localhost:3000/api/v1/auth/reset-password?token=${token}`;
     await this.mailerService.sendMail({
       to: forgetPasswordDto.email,
       subject: 'รีเซ็ตรหัสผ่านสำหรับ Nak Drive',
       html: `
-        <div style="font-family: sans-serif; padding: 20px;">
-          <h2>คุณต้องการรีเซ็ตรหัสผ่านใช่หรือไม่?</h2>
-          <p>คลิกที่ปุ่มด้านล่างเพื่อตั้งรหัสผ่านใหม่ (ลิงก์นี้มีอายุ 15 นาที):</p>
-          <a href="${resetUrl}" style="background: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
-            ตั้งรหัสผ่านใหม่
-          </a>
+        <div style="background-color: #f5f5f5; padding: 32px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+          <div style="background: #ffffff; border-radius: 12px; border: 1px solid #e5e5e5; max-width: 480px; margin: 0 auto; overflow: hidden;">
+            <!-- Header -->
+            <div style="padding: 32px 32px 24px; text-align: center; border-bottom: 1px solid #e5e5e5;">
+              <div style="width: 48px; height: 48px; border-radius: 50%; background: #f5f5f5; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                🔒
+              </div>
+              <h2 style="margin: 0 0 8px; font-size: 18px; font-weight: 600; color: #111111;">รีเซ็ตรหัสผ่าน</h2>
+              <p style="margin: 0; font-size: 14px; color: #666666; line-height: 1.6;">เราได้รับคำขอรีเซ็ตรหัสผ่านสำหรับบัญชีของคุณ</p>
+            </div>
+
+            <!-- Body -->
+            <div style="padding: 28px 32px 24px;">
+              <p style="margin: 0 0 24px; font-size: 14px; color: #555555; line-height: 1.7;">
+                คลิกปุ่มด้านล่างเพื่อตั้งรหัสผ่านใหม่ หากคุณไม่ได้ขอรีเซ็ตรหัสผ่าน สามารถเพิกเฉยต่ออีเมลนี้ได้เลย
+              </p>
+              <a href="${resetUrl}" style="display: block; text-align: center; background: #111111; color: #ffffff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 500; letter-spacing: 0.01em;">
+                ตั้งรหัสผ่านใหม่
+              </a>
+            </div>
+
+            <!-- Footer -->
+            <div style="padding: 16px 32px; border-top: 1px solid #e5e5e5;">
+              <p style="margin: 0; font-size: 12px; color: #888888;">
+                ⏱ ลิงก์นี้จะหมดอายุใน <strong style="color: #111111;">15 นาที</strong>
+              </p>
+            </div>
+          </div>
         </div>
       `,
     });
