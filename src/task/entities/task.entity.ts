@@ -116,5 +116,5 @@ export class Task {
   updatedAt!: Date;
 
   @DeleteDateColumn({ type: 'timestamp', select: false })
-  deletedAt!: Date;
+  deletedAt!: Date | null;
 }
