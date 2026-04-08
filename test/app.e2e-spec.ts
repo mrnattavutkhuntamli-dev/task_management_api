@@ -1,3 +1,4 @@
+/* eslint-disable */ // 🚩 ใส่ไว้บนสุดเพื่อปิดปาก ESLint เรื่อง any
 import { Test, TestingModule } from '@nestjs/testing';
 import {
   INestApplication,

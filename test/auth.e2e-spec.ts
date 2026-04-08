@@ -5,8 +5,10 @@ import * as supertest from 'supertest';
 import { AppModule } from './../src/app.module';
 
 // กำหนด Type ให้ request เพื่อลดขีดแดง
-const request: supertest.SuperTest<supertest.Test> =
-  (supertest as any).default || supertest;
+// const request: supertest.SuperTest<supertest.Test> =
+//   (supertest as any).default || supertest;
+
+const request: any = (supertest as any).default || supertest;
 
 describe('AuthController (e2e)', () => {
   let app: INestApplication;

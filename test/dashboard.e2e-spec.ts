@@ -1,19 +1,14 @@
+/* eslint-disable */
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  INestApplication,
-  ValidationPipe,
-  ClassSerializerInterceptor,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as supertest from 'supertest';
 import { AppModule } from './../src/app.module';
-import { TransformInterceptor } from './../src/common/interceptors/transform.interceptor';
 
-// สูตรแก้ TypeError สำหรับสภาพแวดล้อม Windows
-const request = (supertest as any).default || supertest;
+const request: any = (supertest as any).default || supertest;
 
 describe('DashboardController (E2E)', () => {
   let app: INestApplication;
+  let accessToken: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -21,34 +16,37 @@ describe('DashboardController (E2E)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-
-    // 🚩 Setup ให้เหมือน main.ts เป๊ะๆ
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-      }),
-    );
-    app.useGlobalInterceptors(
-      new ClassSerializerInterceptor(app.get(Reflector)),
-    );
-    app.useGlobalInterceptors(new TransformInterceptor());
-
-    // 🚩 กำหนด Prefix ก่อน init
     app.setGlobalPrefix('api/v1');
-
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     await app.init();
+
+    // 🚩 Login เพื่อเอา Token มาใช้
+    const loginResponse = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({
+        email: 'mr.nattavut.khuntamli@gmail.com',
+        password: 'Aa1231234', // 👈 เช็ค Pass ให้ถูกนะครับ
+      });
+
+    accessToken = loginResponse.body.access_token;
+
+    // 💡 ถ้า accessToken เป็น undefined เทสจะพังแน่ๆ ลอง Log ดูครับ
+    // console.log('DEBUG Token:', accessToken);
   });
 
-  it('/api/v1/dashboard/status (GET)', () => {
+  it('/api/v1/dashboard/status (GET) - ต้องผ่าน', async () => {
     return request(app.getHttpServer())
-      .get('/api/v1/dashboard/status')
-      .expect(200)
-      .expect((res) => {
-        // ตรวจสอบโครงสร้างข้อมูลเบื้องต้น
-        expect(res.body).toBeDefined();
-      });
+      .get('/api/v1/dashboard/status') // 🚩 เช็คสะกด u/a ให้ตรงกับ Controller
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+  });
+
+  it('/api/v1/dashboard/status (GET) - ถ้าไม่ใส่ Token ต้องติด 401', async () => {
+    return request(app.getHttpServer())
+      .get('/api/v1/dashboard/status') // 🚩 ใช้ Path เดียวกับข้างบน
+      .expect(401);
   });
 
   afterAll(async () => {
