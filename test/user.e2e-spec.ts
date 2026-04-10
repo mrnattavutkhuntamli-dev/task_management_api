@@ -57,15 +57,45 @@ describe('UsersController (e2e)', () => {
       const response = await request(app.getHttpServer())
         .get('/api/v1/users')
         .set('Authorization', `Bearer ${accessToken}`);
-
-      // console.log(
-      //     'ACTUAL RESPONSE BODY:',
-      //     JSON.stringify(response.body, null, 2),
-      // );
       expect(response.status).toBe(200);
       const users = response.body.items;
       expect(Array.isArray(users)).toBe(true);
       expect(users.length).toBeGreaterThan(0);
+    });
+
+    it('/users/:id (GET) - ควรดึงรายการผู้ใช้คนนั้น', async () => {
+      createdUserId = 'bb2af3f9-41a5-4fcb-a5e1-fcc042ae94dd';
+      const response = await request(app.getHttpServer())
+        .get(`/api/v1/users/${createdUserId}`)
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      expect(response.status).toBe(200);
+      const user = response.body;
+      expect(typeof user).toBe('object');
+      expect(user.id).toBe(createdUserId);
+      expect(user.email).toBe('mr.nattavut.khuntamli@gmail.com');
+      expect(user.role).toBe('admin');
+      expect(user).toBeDefined();
+      expect(user.password).toBeUndefined();
+    });
+
+    it('/users/:id (Patch) - อัพเดทข้อมูลผู้ใช้ใหม่สำเร็จ', async () => {
+      createdUserId = '64ec767d-392c-45bd-b779-428bb05ecb61';
+      const response = await request(app.getHttpServer())
+        .patch(`/api/v1/users/${createdUserId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          password: 'password123',
+        });
+      expect(response.status).toBe(200);
+    });
+
+    it('/users/:id (Delete) - ลบข้อมูลผู้ใช้ใหม่สำเร็จ', async () => {
+      createdUserId = '2bd6f866-f9dd-4409-af90-15baf5af68a5';
+      const response = await request(app.getHttpServer())
+        .delete(`/api/v1/users/${createdUserId}`)
+        .set('Authorization', `Bearer ${accessToken}`);
+      expect(response.status).toBe(200);
     });
   });
 

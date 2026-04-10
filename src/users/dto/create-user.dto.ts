@@ -10,14 +10,14 @@ import { UserRole } from '../entities/user.entity';
 export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 
   @IsEmail({}, { message: 'อีเมลไม่ถูกต้อง' })
-  email: string;
+  email!: string;
 
   @IsString()
   @MinLength(6, { message: 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร' })
-  password: string;
+  password!: string;
 
   @IsEnum(UserRole)
   @IsOptional()
