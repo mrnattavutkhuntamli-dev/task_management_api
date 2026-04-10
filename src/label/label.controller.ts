@@ -8,6 +8,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { LabelService } from './label.service';
 import { CreateLabelDto } from './dto/create-label.dto';
@@ -41,16 +42,20 @@ export class LabelController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.labelService.findOne(+id);
+    return this.labelService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateLabelDto: UpdateLabelDto) {
-    return this.labelService.update(+id, updateLabelDto);
+  update(
+    @Req() req: RequestWithUser,
+    @Param('id') id: string,
+    @Body() updateLabelDto: UpdateLabelDto,
+  ) {
+    return this.labelService.update(req.user.userId, id, updateLabelDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.labelService.remove(+id);
+  remove(@Req() req: RequestWithUser, @Param('id') id: string) {
+    return this.labelService.remove(req.user.userId, id);
   }
 }
