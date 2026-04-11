@@ -3,6 +3,7 @@ import { useAuthStore } from "@/stores/auth"; // นำ Store มาใช้แ
 
 // Layouts
 import LoginView from "../views/auth/LoginView.vue";
+import ForgotPasswordView from "../views/auth/ForgotPasswordView.vue";
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -11,6 +12,13 @@ const router = createRouter({
       name: "Login",
       component: LoginView, // ย้ายไปโฟลเดอร์ views
       meta: { title: "เข้าสู่ระบบ | Nak Drive" },
+    },
+
+    {
+      path: "/forgot-password",
+      name: "ForgotPassword",
+      component: ForgotPasswordView,
+      meta: { title: "ลืมรหัสผ่าน | Nak Drive" },
     },
   ],
 });
