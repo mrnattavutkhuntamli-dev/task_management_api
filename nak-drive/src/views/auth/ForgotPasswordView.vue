@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { reactive, ref } from "vue";
+import { ref } from "vue";
 import { useRouter } from "vue-router";
-
+import { alertSuccess, alertError } from "../../utils/alert";
+import api from "../../api/axios";
 const router = useRouter();
 const email = ref("");
 const isLoading = ref(false);
@@ -23,9 +24,18 @@ const handleResetPassword = async () => {
 
   try {
     // เชื่อมต่อ API ของคุณกอล์ฟที่นี่ (e.g., api.post('/auth/forgot-password', { email }))
-    await new Promise((r) => setTimeout(r, 2000)); // Simulate API
+    const { data } = await api.post("/auth/forgot-password", {
+      email: email.value,
+    });
+    await alertSuccess(
+      "ส่งอีเมลเรียบร้อยแล้ว",
+      "โปรดตรวจสอบลิงก์รีเซ็ตรหัสผ่านในอีเมลของคุณ",
+    );
     isSubmitted.value = true;
-  } catch (err) {
+  } catch (err: any) {
+    const message =
+      err.response?.data?.message || "เกิดข้อผิดพลาดในการส่งอีเมล";
+    alertError("เกิดข้อผิดพลาด", message);
     error.value = "ไม่พบอีเมลนี้ในระบบ";
   } finally {
     isLoading.value = false;

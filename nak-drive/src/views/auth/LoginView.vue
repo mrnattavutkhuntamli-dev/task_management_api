@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { reactive, ref, computed } from "vue";
 import { useRouter } from "vue-router";
-// import api from "@/api/axios";
-// import { useAuthStore } from "@/stores/auth";
+import api from "../../api/axios";
+import { useAuthStore } from "../../stores/auth";
+import { alertError, alertSuccess } from "../../utils/alert";
 
 const router = useRouter();
-// const authStore = useAuthStore();
+const authStore = useAuthStore();
 
 const form = reactive({ email: "", password: "" });
 const remember = ref(false);
@@ -50,20 +51,18 @@ const handleLogin = async () => {
 
   isLoading.value = true;
   try {
-    // const { data } = await api.post("/auth/login", form);
-    // if (data.success === true) {
-    //   authStore.setToken(data.accessToken);
-    //   localStorage.setItem("refresh_token", data.refreshToken);
-    //   alert("เข้าสู่ระบบสำเร็จ");
-    // } else {
-    //   alert("อีเมลหรือรหัสผ่านผิด");
-    // }
-
-    // Simulate API call
-    await new Promise((r) => setTimeout(r, 1500));
-    alert("เข้าสู่ระบบสำเร็จ");
+    const { data } = await api.post("/auth/login", form);
+    console.log(data);
+    if (data.statusCode == 200) {
+      authStore.setToken(data.access_token);
+      alertSuccess("เข้าสู่ระบบสำเร็จ", "เข้าสู่ระบบเรียบร้อยแล้ว");
+      router.push({ name: "Dashboard" });
+    } else {
+      alertError("เข้าสู่ระบบไม่สำเร็จ", "อีเมลหรือรหัสผ่านผิด");
+    }
   } catch (err) {
-    alert("เข้าสู่ระบบไม่สำเร็จ");
+    console.log(err);
+    alertError("เข้าสู่ระบบไม่สำเร็จ", "อีเมลหรือรหัสผ่านผิด");
   } finally {
     isLoading.value = false;
   }

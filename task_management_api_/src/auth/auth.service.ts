@@ -16,7 +16,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThan, Repository } from 'typeorm';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ActivitiesService } from 'src/activities/activities.service';
-
+import { ConfigService } from '@nestjs/config';
 interface RequestWithUser extends Request {
   user: {
     userId: string;
@@ -35,6 +35,7 @@ export class AuthService {
     private jwtService: JwtService,
     private readonly mailerService: MailerService,
     private readonly ActivityService: ActivitiesService,
+    private configService: ConfigService,
   ) {}
 
   async login(logindto: LoginDto) {
@@ -125,8 +126,9 @@ export class AuthService {
     // บันทึกข้อมูลในระบบต่อไปนี้
     await this.usersService.updateResetToken(user.id, token, expires);
 
+    const frontUrl = this.configService.get<string>('FRONT_URL');
     // ส่งเมลผ่าน Resend
-    const resetUrl = `http://localhost:3000/api/v1/auth/reset-password?token=${token}`;
+    const resetUrl = `${frontUrl}/reset-password?token=${token}`;
     await this.mailerService.sendMail({
       to: forgetPasswordDto.email,
       subject: 'รีเซ็ตรหัสผ่านสำหรับ Nak Drive',

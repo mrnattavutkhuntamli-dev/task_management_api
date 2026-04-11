@@ -3,6 +3,12 @@
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "types": ["vite/client"],
+    "moduleResolution": "bundler",
+    // ปรับตรงนี้ครับ
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    // เพิ่มบรรทัดนี้เพื่อช่วยให้มันหาโมดูลเจอแม่นขึ้น
 
     /* Linting */
     "noUnusedLocals": true,
