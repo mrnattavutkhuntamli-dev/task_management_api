@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from 'src/users/users.service';
 import * as bcrypt from 'bcrypt';
@@ -10,6 +14,18 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { User } from 'src/users/entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThan, Repository } from 'typeorm';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { ActivitiesService } from 'src/activities/activities.service';
+
+interface RequestWithUser extends Request {
+  user: {
+    userId: string;
+    email: string;
+    role: string;
+    refreshToken?: string;
+  };
+}
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -18,6 +34,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private readonly mailerService: MailerService,
+    private readonly ActivityService: ActivitiesService,
   ) {}
 
   async login(logindto: LoginDto) {
@@ -38,6 +55,58 @@ export class AuthService {
       };
     }
     throw new UnauthorizedException('อีเมลหรือรหัสผ่านผิด');
+  }
+
+  async changePassword(
+    req: RequestWithUser,
+    ip: string,
+    changePasswordDto: ChangePasswordDto,
+  ) {
+    const { oldPassword, newPassword } = changePasswordDto;
+    const userId = req.user.userId;
+
+    // ดึงข้อมูลผู้ใช้ที่มีรหัสผ่านเดียวก่อนจะส่งคำขอให้กับผู้ใช้ที่ได้รับรหัสผ่าน
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new Error('ผู้ใช้ไม่มีรหัสผ่าน');
+    }
+    const salt = await bcrypt.genSalt(10);
+    if (!bcrypt.compareSync(oldPassword, user.password)) {
+      // บันทึก log กรณีมีคนพยามยามเดารหัสผ่านเดิม
+      await this.ActivityService.log({
+        action: 'AUTH_CHANGE_PASSWORD_FAILED',
+        entityId: user.id,
+        oldData: { ip, reason: ' Wrong old password' },
+        newData: {},
+        userId: user.id,
+      });
+      throw new Error(
+        'รหัสผ่านเดียวก่อนจะส่งคำขอให้กับผู้ใช้ที่ได้รับรหัสผ่าน',
+      );
+    }
+
+    // ตรวจสอบรหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสเดิม
+    if (oldPassword === newPassword) {
+      throw new Error('รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสเดิม');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    await this.userRepository.update(user.id, {
+      password: hashedPassword,
+    });
+
+    await this.ActivityService.log({
+      action: 'AUTH_CHANGE_PASSWORD_SUCCESS',
+      entityId: user.id,
+      oldData: { ip },
+      newData: { status: 'success' },
+      userId: user.id,
+    });
+
+    return { message: 'รหัสผ่านของคุณได้ถูกเปลี่ยนแล้ว', type: 'SUCCESS' };
   }
 
   async forgotPassword(forgetPasswordDto: Forgot_passwordDto) {
@@ -121,5 +190,65 @@ export class AuthService {
     return {
       message: 'เปลี่ยนรหัสผ่านใหม่สำเร็จแล้ว กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่',
     };
+  }
+
+  // refreshtoken จะถูกใช้เมื่อคุณต้องการเข้าสู่ระบบใหม่หรือไม่
+  async getToken(userId: string, email: string, role: string) {
+    const payload = {
+      sub: userId,
+      email: email,
+      role: role,
+    };
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(payload, {
+        secret: process.env.JWT_ACCESS_SECRET,
+        expiresIn: '15m', // สั้นๆ เพื่อความปลอดภัย
+      }),
+      this.jwtService.signAsync(payload, {
+        secret: process.env.JWT_REFRESH_SECRET,
+        expiresIn: '7d', // อยู่ได้นานหน่อย
+      }),
+    ]);
+    return { accessToken, refreshToken };
+  }
+
+  async updateRefreshToken(userId: string, refreshToken: string) {
+    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+    await this.userRepository.update(userId, {
+      refreshToken: hashedRefreshToken, // อย่าลืมเพิ่มฟิลด์นี้ใน User Entity นะครับ
+    });
+  }
+
+  async logout(req: RequestWithUser) {
+    // ล้าง Refresh Token ใน DB ทิ้งเพื่อให้ใช้ต่อไม่ได้
+    return this.userRepository.update(req.user.userId, { refreshToken: null });
+  }
+
+  async refreshTokens(req: RequestWithUser) {
+    const payload = {
+      userId: req.user.userId,
+      email: req.user.email,
+      role: req.user.role,
+    };
+    const user = await this.userRepository.findOne({
+      where: { id: payload.userId },
+    });
+    if (!user || !user.refreshToken) {
+      throw new ForbiddenException('Access Denied');
+    }
+
+    const refreshTokenMatches = await bcrypt.compare(
+      req.user.refreshToken!,
+      user.refreshToken,
+    );
+    if (!refreshTokenMatches) throw new ForbiddenException('Access Denied');
+
+    const tokens = await this.getToken(
+      payload.userId,
+      payload.email,
+      payload.role,
+    );
+    await this.updateRefreshToken(user.id, tokens.refreshToken);
+    return tokens;
   }
 }

@@ -6,10 +6,12 @@ import {
   UseGuards,
   Req,
   UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
 interface RequestWithUser extends Request {
   user: {
     userId: string;
@@ -29,6 +31,7 @@ export class ProfileController {
   }
 
   @Patch()
+  @UseInterceptors(FileInterceptor('file'))
   async updateProfile(
     @Req() req,
     @Body() updateUserDto: UpdateUserDto,

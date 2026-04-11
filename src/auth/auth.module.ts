@@ -17,10 +17,12 @@ import { StringValue } from 'ms';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/users/entities/user.entity';
+import { ActivitiesModule } from 'src/activities/activities.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User]),
+    ActivitiesModule,
     UsersModule,
     MailerModule,
     PassportModule,
