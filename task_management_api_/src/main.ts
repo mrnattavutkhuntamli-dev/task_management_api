@@ -8,6 +8,13 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+  // เปิด cors สำหรับ API ที่ใช้งานกับ NestJS
+  app.enableCors({
+    origin: '*',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+  });
   // เปิดใช้งาน Validation ทั่วทั้ง App
   app.useGlobalPipes(
     new ValidationPipe({
