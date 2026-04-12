@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore } from "@/stores/auth"; // นำ Store มาใช้แทน sessionStorage
 
 import AdminLayout from "../layouts/AdminLayout.vue";
+import UserLayout from "../layouts/UserLayout.vue";
 
 // Layouts
 import LoginView from "../views/auth/LoginView.vue";
@@ -37,7 +38,7 @@ const router = createRouter({
     {
       path: "/admin",
       component: AdminLayout,
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, roles: ["admin"] },
       children: [
         {
           path: "/admin/dashboard",
@@ -53,37 +54,59 @@ const router = createRouter({
         },
       ],
     },
+    {
+      path: "/user",
+      component: UserLayout,
+      meta: { requiresAuth: true, roles: ["user"] },
+      children: [
+        {
+          path: "/user/dashboard",
+          name: "UserDashboard",
+          component: DashboardView,
+          meta: { title: "แผนการผู้ใช้ | Nak Drive" },
+        },
+        {
+          path: "/user/tasks",
+          name: "UserTaskList",
+          component: TaskListView,
+          meta: { title: "รายการงาน | Nak Drive" },
+        },
+      ],
+    },
   ],
 });
 
 // --- Navigation Guard (แบบปรับปรุง) ---
-// router.beforeEach(async (to, from, next) => {
-//   const authStore = useAuthStore();
+router.beforeEach(async (to, from, next) => {
+  const authStore = useAuthStore();
+  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
+  const token = authStore.token;
+  const userRole = authStore.user?.role || "";
 
-//   // ตรวจสอบว่าต้องการ Auth ไหม
-//   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
-//   const user = authStore.user; // ดึงจาก Pinia แทน
-//   const token = authStore.accessToken;
+  // 1. ถ้าต้องใช้ Auth แต่ไม่มี Token -> ไป Login
+  if (requiresAuth && !token) {
+    return next({ name: "Login" });
+  }
 
-// //   if (requiresAuth && !token) {
-// //     // 1. ถ้าต้องล็อคอิน แต่ไม่มี Token -> ไปหน้า Login
-// //     next({ name: "Login" });
-// //   } else if (to.name === "Login" && token) {
-// //     // 2. ถ้าล็อคอินแล้ว จะเข้าหน้า Login -> ไปหน้า Dashboard ตาม Role
-// //     if (authStore.user?.role === "admin") next({ name: "AdminDashboard" });
-// //     else next({ name: "UserDashboard" });
-// //   } else {
-// //     // 3. ตรวจสอบ Role สิทธิ์การเข้าถึง
-// //     const requiredRoles = to.meta.roles as string[];
-// //     if (requiredRoles && !requiredRoles.includes(authStore.user?.role || "")) {
-// //       // ไม่มีสิทธิ์ -> ดีดกลับไปหน้า Dashboard ของตัวเอง
-// //       alert("คุณไม่มีสิทธิ์เข้าถึงหน้านี้");
-// //       next(from.path);
-// //     } else {
-// //       next();
-// //     }
-//   }
-// });
+  // 2. ถ้ามี Token แล้วพยายามเข้าหน้า Auth (Login, Forgot, Reset)
+  // ให้ดีดไปหน้า Dashboard ตาม Role
+  const authRoutes = ["Login", "ForgotPassword", "ResetPassword"];
+  if (to.name && authRoutes.includes(to.name as string) && token) {
+    if (userRole === "admin") {
+      return next({ name: "AdminDashboard" });
+    } else {
+      return next({ name: "UserDashboard" });
+    }
+  }
+  // 3. ตรวจสอบสิทธิ์การเข้าถึง (RBAC) - เพิ่มเติมให้ถ้ามีกำหนด meta.roles
+  const requiredRoles = to.meta.roles as string[];
+  if (requiredRoles && !requiredRoles.includes(userRole)) {
+    alert("คุณไม่มีสิทธิ์เข้าถึงหน้านี้");
+    return next(from.path !== "/" ? from.path : { name: "UserDashboard" });
+  }
+  // 4. กรณีอื่นๆ ทั้งหมดที่ผ่านมาถึงตรงนี้ ให้ผ่านไปได้เลย
+  next();
+});
 
 // Page Title
 router.afterEach((to) => {

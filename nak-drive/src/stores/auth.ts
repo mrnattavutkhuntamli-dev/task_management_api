@@ -12,6 +12,7 @@ export const useAuthStore = defineStore("auth", () => {
 
   const setUser = (payload: any) => {
     user.value = payload;
+    console.log(user.value);
     localStorage.setItem("user_payload", JSON.stringify(payload));
   };
 

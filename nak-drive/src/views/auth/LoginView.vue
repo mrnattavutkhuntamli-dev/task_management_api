@@ -61,6 +61,7 @@ const handleLogin = async () => {
         role: user.role,
       };
       authStore.setToken(access_token);
+      authStore.setUser(payload);
       alertSuccess("เข้าสู่ระบบสำเร็จ", "เข้าสู่ระบบเรียบร้อยแล้ว");
       router.push({ name: "AdminDashboard" });
     } else {
