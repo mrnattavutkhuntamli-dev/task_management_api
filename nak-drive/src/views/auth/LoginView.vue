@@ -52,17 +52,29 @@ const handleLogin = async () => {
   isLoading.value = true;
   try {
     const { data } = await api.post("/auth/login", form);
-    console.log(data);
-    if (data.statusCode == 200) {
-      authStore.setToken(data.access_token);
+
+    if (data.statusCode == 200 || data.statusCode == 201) {
+      const { access_token, user } = data.data;
+      const payload = {
+        id: user.id,
+        name: user.name,
+        role: user.role,
+      };
+      authStore.setToken(access_token);
       alertSuccess("เข้าสู่ระบบสำเร็จ", "เข้าสู่ระบบเรียบร้อยแล้ว");
-      router.push({ name: "Dashboard" });
+      router.push({ name: "AdminDashboard" });
     } else {
-      alertError("เข้าสู่ระบบไม่สำเร็จ", "อีเมลหรือรหัสผ่านผิด");
+      alertError(
+        "เข้าสู่ระบบไม่สำเร็จ",
+        "ข้อมูลไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง",
+      );
     }
-  } catch (err) {
-    console.log(err);
-    alertError("เข้าสู่ระบบไม่สำเร็จ", "อีเมลหรือรหัสผ่านผิด");
+  } catch (err: any) {
+    console.error("Login Error:", err);
+    // ดึง message จาก Backend มาโชว์จะดูเป็นมืออาชีพกว่าครับ
+    const errorMsg =
+      err.response?.data?.message || "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
+    alertError("เข้าสู่ระบบไม่สำเร็จ", errorMsg);
   } finally {
     isLoading.value = false;
   }

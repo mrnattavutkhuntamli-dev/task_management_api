@@ -1,10 +1,16 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore } from "@/stores/auth"; // นำ Store มาใช้แทน sessionStorage
 
+import AdminLayout from "../layouts/AdminLayout.vue";
+
 // Layouts
 import LoginView from "../views/auth/LoginView.vue";
 import ForgotPasswordView from "../views/auth/ForgotPasswordView.vue";
 import ResetPasswordView from "../views/auth/ResetPasswordView.vue";
+
+// Admin
+import DashboardView from "@/views/admin/dashboard/DashboardView.vue";
+import TaskListView from "@/views/admin/task/TaskListView.vue";
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -26,6 +32,26 @@ const router = createRouter({
       name: "ResetPassword",
       component: ResetPasswordView,
       meta: { title: "ตั้งรหัสผ่านใหม่ | Nak Drive" },
+    },
+
+    {
+      path: "/admin",
+      component: AdminLayout,
+      meta: { requiresAuth: true },
+      children: [
+        {
+          path: "/admin/dashboard",
+          name: "AdminDashboard",
+          component: DashboardView,
+          meta: { title: "แผนการผู้ใช้ | Nak Drive" },
+        },
+        {
+          path: "/admin/tasks",
+          name: "AdminTaskList",
+          component: TaskListView,
+          meta: { title: "รายการงาน | Nak Drive" },
+        },
+      ],
     },
   ],
 });
