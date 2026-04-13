@@ -50,7 +50,7 @@ const mainMenus = [
 ];
 
 const systemMenus = [
-  { to: "/admin/system/users", icon: "fa-user-group", text: "Team Members" },
+  { to: "/admin/users", icon: "fa-user-group", text: "Team Members" },
   {
     to: "/admin/system/task-settings",
     icon: "fa-sliders",
