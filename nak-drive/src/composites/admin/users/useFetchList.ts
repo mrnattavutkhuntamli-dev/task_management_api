@@ -2,8 +2,8 @@ import { ref, reactive } from "vue";
 import api from "@/api/axios";
 
 // 1. เปลี่ยนจาก export default เป็น export function
-export function useFetchList(url: string) {
-  const data = ref([]);
+export function useFetchList<T>(url: string) {
+  const data = ref<T[]>([]);
   const isLoading = ref(false);
 
   const pagination = reactive({

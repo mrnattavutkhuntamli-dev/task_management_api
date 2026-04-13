@@ -69,8 +69,9 @@ export class UsersService {
      */
     if (search) {
       // ใช้ ILIKE สำหรับการค้นหาแบบไม่สนใจตัวพิมพ์เล็ก-ใหญ่ (PostgreSQL)
-      queryBuilder.where(
-        '(user.name ILIKE :search OR user.email ILIKE :search)',
+      queryBuilder.andWhere(
+        // ใช้ CAST(user.role AS WITH text) แทนการใช้ ::text
+        '(user.name ILIKE :search OR user.email ILIKE :search OR CAST(user.role AS text) ILIKE :search)',
         { search: `%${search}%` },
       );
     }
