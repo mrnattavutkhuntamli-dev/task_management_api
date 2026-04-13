@@ -8,8 +8,8 @@ const api = axios.create({
 // ดักตอนส่ง: ย้าย useAuthStore มาไว้ข้างในนี้
 api.interceptors.request.use((config) => {
   const authStore = useAuthStore(); // 👈 ย้ายมาเรียกตรงนี้
-  if (authStore.accessToken) {
-    config.headers.Authorization = `Bearer ${authStore.accessToken}`;
+  if (authStore.token) {
+    config.headers.Authorization = `Bearer ${authStore.token}`;
   }
   return config;
 });
