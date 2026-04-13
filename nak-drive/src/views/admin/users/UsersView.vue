@@ -1,251 +1,217 @@
 <script setup>
-import { ref, reactive, onMounted, watch } from "vue";
+import { reactive, onMounted, watch } from "vue";
+import { useFetchList } from "@/composites/admin/users/useFetchList"; // เรียกใช้ Composable
+import { getUploadUrl } from "@/api/axios";
 import dayjs from "dayjs";
-import api from "@/api/axios";
 
-// import components
+// Components
 import Pagination from "@/components/common/Pagination.vue";
-import SearchFilter from "@/components/common/SearchFilter.vue";
+import SearchFilterUser from "@/components/common/SearchFilterUser.vue";
 
-// ---- เก็บข้อมูล ----
-const tasks = ref([]); // รายการ tasks ทั้งหมด
-const isLoading = ref(false); // สถานะกำลังโหลด
+// ใช้ Composable จัดการเรื่องการดึงข้อมูลพนักงาน
+const {
+  data: users,
+  isLoading,
+  pagination,
+  fetchItems,
+} = useFetchList("/users");
 
-// ---- ข้อมูลการแบ่งหน้า (มาจาก response.meta) ----
-const pagination = reactive({
-  totalItems: 0,
-  itemCount: 0,
-  itemsPerPage: 10,
-  totalPages: 1,
-  currentPage: 1,
-});
-
-// ---- พารามิเตอร์สำหรับส่งไป API ----
 const queryParams = reactive({
   page: 1,
   limit: 10,
   search: "",
+  role: "",
 });
 
-// ---- Helper: ดึง assignee หรือ owner อย่างใดอย่างหนึ่ง ----
-// เหตุผล: API ส่ง assignee เป็น null แต่มีข้อมูลอยู่ที่ owner
-const getAssignee = (task) => task.assignee ?? task.owner ?? null;
-
-// ---- ดึงข้อมูลจาก API ----
-const fetchTasks = async () => {
-  isLoading.value = true; // เปิด loading
-  try {
-    const response = await api.get("/task", {
-      params: {
-        page: queryParams.page,
-        limit: queryParams.limit,
-        search: queryParams.search || undefined,
-      },
-    });
-
-    if (response.data.success) {
-      tasks.value = response.data.data; // เก็บ tasks
-      Object.assign(pagination, response.data.meta); // อัปเดตหน้า
-    }
-  } catch (error) {
-    console.error("Fetch Error:", error);
-  } finally {
-    isLoading.value = false; // ปิด loading ไม่ว่าจะสำเร็จหรือ error
-  }
+// เรียก Fetch ข้อมูล
+const loadData = () => {
+  const combinedSearch = `${queryParams.search} ${queryParams.role}`.trim();
+  fetchItems({
+    page: queryParams.page,
+    limit: queryParams.limit,
+    search: combinedSearch || undefined,
+  });
 };
-
-// ---- ค้นหาแบบ Real-time (รอ 500ms หลังพิมพ์เสร็จ) ----
+// Watcher สำหรับค้นหา (Debounce)
 let searchTimer;
 watch(
   () => queryParams.search,
   () => {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => {
-      queryParams.page = 1; // ค้นหาใหม่ → กลับหน้า 1 เสมอ
-      fetchTasks();
+      queryParams.page = 1;
+      loadData();
     }, 500);
   },
 );
 
-// ---- เปลี่ยนหน้า ----
-const handlePageChange = (newPage) => {
-  if (newPage >= 1 && newPage <= pagination.totalPages) {
-    queryParams.page = newPage;
-    fetchTasks();
-  }
+const handlePageChange = (page) => {
+  queryParams.page = page;
+  loadData();
 };
 
-// ---- เปลี่ยนจำนวนรายการต่อหน้า ----
-const handleLimitChange = () => {
-  queryParams.page = 1; // เปลี่ยน limit → กลับหน้า 1 เสมอ
-  fetchTasks();
-};
-
-// ---- แปลงวันที่ให้อ่านง่าย ----
 const formatDate = (date) => dayjs(date).format("DD/MM/YYYY");
 
-// ---- โหลดข้อมูลครั้งแรกตอนหน้าเปิด ----
-onMounted(fetchTasks);
+onMounted(loadData);
 </script>
 
 <template>
-  <div class="p-6 lg:p-10 bg-slate-50 min-h-screen font-sans">
-    <!-- หัวหน้า + ปุ่ม New Task -->
-    <div
-      class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4"
-    >
+  <div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex items-center justify-between">
       <div>
-        <h2 class="text-3xl font-bold text-slate-900 tracking-tight">
+        <h2 class="text-xl font-bold" style="color: #1e293b">
           User Management
         </h2>
-        <p class="text-slate-500 mt-1 flex items-center gap-2">
-          <span class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
-          พบทั้งหมด {{ pagination.totalItems }} รายการ
+        <p class="text-[13px] mt-0.5" style="color: #94a3b8">
+          จัดการสมาชิกทั้งหมดในระบบ
         </p>
       </div>
-      <button
-        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-blue-500/25 transition-all active:scale-95 flex items-center justify-center gap-2"
-      >
-        <i class="fa-solid fa-plus text-sm"></i>
-        New Task
-      </button>
     </div>
 
-    <!-- แถบค้นหา + เลือกจำนวนรายการ -->
-    <SearchFilter
-      v-model:search="queryParams.search"
-      v-model:limit="queryParams.limit"
-      :placeholder="'ค้นหาข้อมูลพนักงาน...'"
-      @change-limit="handleLimitChange"
-    />
-
-    <!-- ตาราง Tasks -->
+    <!-- Search Filter -->
     <div
-      class="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden relative transition-all"
+      class="p-4 rounded-2xl"
+      style="background: #ffffff; border: 1px solid #e8ecf0"
     >
-      <!-- Overlay ตอนกำลังโหลด -->
+      <SearchFilterUser
+        v-model:search="queryParams.search"
+        v-model:limit="queryParams.limit"
+        v-model:role="queryParams.role"
+        placeholder="ค้นหาชื่อพนักงาน หรืออีเมล..."
+        @change-limit="loadData"
+        @change-filter="loadData"
+      />
+    </div>
+
+    <!-- Table Card -->
+    <div
+      class="rounded-2xl overflow-hidden relative"
+      style="background: #ffffff; border: 1px solid #e8ecf0"
+    >
+      <!-- Loading Overlay -->
       <div
         v-if="isLoading"
-        class="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-20 flex items-center justify-center"
+        class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3"
+        style="background: rgba(255, 255, 255, 0.75)"
       >
-        <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-600"></i>
+        <i
+          class="fa-solid fa-circle-notch fa-spin text-2xl"
+          style="color: #3b82f6"
+        ></i>
+        <p class="text-[12px]" style="color: #94a3b8">กำลังโหลด...</p>
       </div>
 
+      <!-- Table -->
       <div class="overflow-x-auto">
         <table class="w-full text-left">
           <thead>
-            <tr class="bg-slate-50/50 border-b border-slate-100">
+            <tr style="background: #f8fafc; border-bottom: 1px solid #e8ecf0">
               <th
-                class="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]"
+                class="px-6 py-4 text-[10px] font-black uppercase tracking-wider"
+                style="color: #94a3b8"
               >
-                Task Details
+                User Info
               </th>
               <th
-                class="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]"
+                class="px-6 py-4 text-[10px] font-black uppercase tracking-wider"
+                style="color: #94a3b8"
               >
-                Priority
+                Role
               </th>
               <th
-                class="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]"
+                class="px-6 py-4 text-[10px] font-black uppercase tracking-wider"
+                style="color: #94a3b8"
               >
-                Status
-              </th>
-              <th
-                class="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]"
-              >
-                Assignee
-              </th>
-              <th
-                class="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]"
-              >
-                Due Date
+                Joined Date
               </th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-50">
+          <tbody>
             <tr
-              v-for="task in tasks"
-              :key="task.id"
-              class="hover:bg-slate-50/40 transition-colors group"
+              v-for="user in users"
+              :key="user.id"
+              class="group transition-colors duration-150"
+              style="border-bottom: 1px solid #f8fafc"
+              onmouseenter="this.style.backgroundColor = '#fafbfc'"
+              onmouseleave="this.style.backgroundColor = 'transparent'"
             >
-              <!-- ชื่องาน + labels -->
-              <td class="px-6 py-5">
-                <div class="flex flex-col gap-1.5">
-                  <span
-                    class="text-sm font-bold text-slate-800 leading-tight group-hover:text-blue-600 transition-colors"
+              <!-- User Info -->
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-10 h-10 rounded-xl overflow-hidden shrink-0"
+                    style="border: 1px solid #e2e8f0"
                   >
-                    {{ task.title }}
-                  </span>
-                  <div class="flex flex-wrap gap-1">
-                    <span
-                      v-for="label in task.labels"
-                      :key="label.id"
-                      :style="{
-                        backgroundColor: label.color + '10',
-                        color: label.color,
-                        borderColor: label.color + '30',
-                      }"
-                      class="px-2 py-0.5 rounded-lg text-[10px] font-black border uppercase tracking-tighter"
+                    <img
+                      v-if="user.avatar"
+                      :src="`${getUploadUrl(user.avatar)}`"
+                      :alt="user.name"
+                      class="w-full h-full object-cover"
+                    />
+                    <div
+                      v-else
+                      class="w-full h-full flex items-center justify-center text-white font-bold text-sm"
+                      style="
+                        background: linear-gradient(135deg, #3b82f6, #6366f1);
+                      "
                     >
-                      {{ label.name }}
-                    </span>
+                      {{ user.name.charAt(0) }}
+                    </div>
+                  </div>
+                  <div>
+                    <p class="text-[13px] font-semibold" style="color: #1e293b">
+                      {{ user.name }}
+                    </p>
+                    <p class="text-[11px] mt-0.5" style="color: #94a3b8">
+                      {{ user.email }}
+                    </p>
                   </div>
                 </div>
               </td>
 
-              <!-- Priority -->
-              <td class="px-6 py-5">
-                <div
-                  :style="{ color: task.priority.color }"
-                  class="flex items-center gap-1.5 font-black text-[10px] uppercase"
-                >
-                  <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
-                  {{ task.priority.label }}
-                </div>
-              </td>
-
-              <!-- Status -->
-              <td class="px-6 py-5 text-center">
+              <!-- Role -->
+              <td class="px-6 py-4">
                 <span
-                  :style="{ backgroundColor: task.status.color }"
-                  class="px-4 py-1.5 rounded-xl text-[10px] font-black text-white shadow-sm inline-block min-w-[100px] uppercase tracking-wider"
+                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold"
+                  :style="
+                    user.role === 'admin'
+                      ? 'background:#ede9fe; color:#8b5cf6;'
+                      : 'background:#ecfdf5; color:#10b981;'
+                  "
                 >
-                  {{ task.status.label }}
+                  <i
+                    :class="[
+                      'fa-solid text-[9px]',
+                      user.role === 'admin' ? 'fa-shield-halved' : 'fa-user',
+                    ]"
+                  ></i>
+                  {{ user.role }}
                 </span>
               </td>
 
-              <!-- Assignee — แก้ไขตรงนี้ ใช้ getAssignee() แทน task.assignee -->
-              <td class="px-6 py-5">
-                <div v-if="getAssignee(task)" class="flex items-center gap-2">
-                  <div
-                    class="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-[11px] font-bold text-white shadow-md"
-                  >
-                    {{ getAssignee(task).name.charAt(0) }}
-                  </div>
-                  <div class="flex flex-col">
-                    <span class="text-xs font-bold text-slate-700">{{
-                      getAssignee(task).name
-                    }}</span>
-                    <span class="text-[9px] text-slate-400 font-medium"
-                      >Team Member</span
-                    >
-                  </div>
-                </div>
-                <div
-                  v-else
-                  class="text-center italic text-[10px] text-slate-300 font-bold tracking-widest uppercase"
-                >
-                  No Assignee
-                </div>
+              <!-- Joined Date -->
+              <td class="px-6 py-4 text-[13px]" style="color: #94a3b8">
+                {{ formatDate(user.createdAt) }}
               </td>
+            </tr>
 
-              <!-- Due Date -->
-              <td class="px-6 py-5">
-                <div class="text-xs font-bold text-slate-600 flex flex-col">
-                  <span>{{ formatDate(task.dueDate) }}</span>
-                  <span class="text-[10px] text-slate-400 font-medium"
-                    >Deadline</span
+            <!-- Empty State -->
+            <tr v-if="!isLoading && (!users || users.length === 0)">
+              <td colspan="3" class="px-6 py-16 text-center">
+                <div class="flex flex-col items-center gap-3">
+                  <div
+                    class="w-12 h-12 rounded-2xl flex items-center justify-center"
+                    style="background: #f1f5f9"
                   >
+                    <i
+                      class="fa-solid fa-users text-lg"
+                      style="color: #cbd5e1"
+                    ></i>
+                  </div>
+                  <p class="text-[13px] font-semibold" style="color: #94a3b8">
+                    ไม่พบข้อมูลผู้ใช้
+                  </p>
                 </div>
               </td>
             </tr>
@@ -254,11 +220,13 @@ onMounted(fetchTasks);
       </div>
 
       <!-- Pagination -->
-      <Pagination
-        :currentPage="pagination.currentPage"
-        :totalPages="pagination.totalPages"
-        @change="handlePageChange"
-      />
+      <div style="border-top: 1px solid #f1f5f9" class="px-6 py-4">
+        <Pagination
+          :currentPage="pagination.currentPage"
+          :totalPages="pagination.totalPages"
+          @change="handlePageChange"
+        />
+      </div>
     </div>
   </div>
 </template>
