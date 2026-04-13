@@ -1,12 +1,17 @@
 <script setup>
 import { ref, reactive, onMounted, watch } from "vue";
 import dayjs from "dayjs";
-import axios from "axios";
+import api from "@/api/axios";
 
-// --- 1. State Management ---
-const tasks = ref([]);
-const isLoading = ref(false);
+// import components
+import Pagination from "@/components/common/Pagination.vue";
+import SearchFilter from "@/components/common/SearchFilter.vue";
 
+// ---- เก็บข้อมูล ----
+const tasks = ref([]); // รายการ tasks ทั้งหมด
+const isLoading = ref(false); // สถานะกำลังโหลด
+
+// ---- ข้อมูลการแบ่งหน้า (มาจาก response.meta) ----
 const pagination = reactive({
   totalItems: 0,
   itemCount: 0,
@@ -15,54 +20,54 @@ const pagination = reactive({
   currentPage: 1,
 });
 
+// ---- พารามิเตอร์สำหรับส่งไป API ----
 const queryParams = reactive({
   page: 1,
   limit: 10,
   search: "",
 });
 
-// --- 2. API Integration ---
+// ---- Helper: ดึง assignee หรือ owner อย่างใดอย่างหนึ่ง ----
+// เหตุผล: API ส่ง assignee เป็น null แต่มีข้อมูลอยู่ที่ owner
+const getAssignee = (task) => task.assignee ?? task.owner ?? null;
+
+// ---- ดึงข้อมูลจาก API ----
 const fetchTasks = async () => {
-  isLoading.value = true;
+  isLoading.value = true; // เปิด loading
   try {
-    const response = await axios.get("http://localhost:3000/api/v1/tasks", {
+    const response = await api.get("/task", {
       params: {
         page: queryParams.page,
         limit: queryParams.limit,
-        search: queryParams.search || undefined, // ถ้าไม่มีค่าไม่ต้องส่ง
+        search: queryParams.search || undefined,
       },
-      // headers: { Authorization: `Bearer ${your_token}` } // อย่าลืมใส่ Token ถ้ามี
     });
 
     if (response.data.success) {
-      tasks.value = response.data.data;
-      // Map meta data เข้ากับ pagination state
-      Object.assign(pagination, response.data.meta);
+      tasks.value = response.data.data; // เก็บ tasks
+      Object.assign(pagination, response.data.meta); // อัปเดตหน้า
     }
   } catch (error) {
     console.error("Fetch Error:", error);
-    // กรณี Error  Toast แจ้งเตือนตรงนี้
   } finally {
-    isLoading.value = false;
+    isLoading.value = false; // ปิด loading ไม่ว่าจะสำเร็จหรือ error
   }
 };
 
-// --- 3. Watchers & Logic ---
-
-// ค้นหาแบบ Real-time (Debounce)
+// ---- ค้นหาแบบ Real-time (รอ 500ms หลังพิมพ์เสร็จ) ----
 let searchTimer;
 watch(
   () => queryParams.search,
   () => {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => {
-      queryParams.page = 1; // ค้นหาใหม่ต้องเริ่มหน้า 1 เสมอ
+      queryParams.page = 1; // ค้นหาใหม่ → กลับหน้า 1 เสมอ
       fetchTasks();
     }, 500);
   },
 );
 
-// เปลี่ยนหน้า หรือเปลี่ยน Limit
+// ---- เปลี่ยนหน้า ----
 const handlePageChange = (newPage) => {
   if (newPage >= 1 && newPage <= pagination.totalPages) {
     queryParams.page = newPage;
@@ -70,19 +75,22 @@ const handlePageChange = (newPage) => {
   }
 };
 
+// ---- เปลี่ยนจำนวนรายการต่อหน้า ----
 const handleLimitChange = () => {
-  queryParams.page = 1;
+  queryParams.page = 1; // เปลี่ยน limit → กลับหน้า 1 เสมอ
   fetchTasks();
 };
 
-onMounted(fetchTasks);
-
-// Helper Functions
+// ---- แปลงวันที่ให้อ่านง่าย ----
 const formatDate = (date) => dayjs(date).format("DD/MM/YYYY");
+
+// ---- โหลดข้อมูลครั้งแรกตอนหน้าเปิด ----
+onMounted(fetchTasks);
 </script>
 
 <template>
   <div class="p-6 lg:p-10 bg-slate-50 min-h-screen font-sans">
+    <!-- หัวหน้า + ปุ่ม New Task -->
     <div
       class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4"
     >
@@ -103,40 +111,18 @@ const formatDate = (date) => dayjs(date).format("DD/MM/YYYY");
       </button>
     </div>
 
-    <div
-      class="bg-white p-4 rounded-[28px] shadow-sm border border-slate-100 mb-6 flex flex-wrap gap-4 items-center"
-    >
-      <div class="relative flex-1 min-w-[280px]">
-        <i
-          class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-        ></i>
-        <input
-          v-model="queryParams.search"
-          type="text"
-          placeholder="ค้นหางานของคุณ..."
-          class="w-full pl-11 pr-4 py-3 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500/10 transition-all text-sm outline-none text-slate-700"
-        />
-      </div>
+    <!-- แถบค้นหา + เลือกจำนวนรายการ -->
+    <SearchFilter
+      v-model:search="queryParams.search"
+      v-model:limit="queryParams.limit"
+      @change-limit="handleLimitChange"
+    />
 
-      <div class="flex items-center gap-3">
-        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider"
-          >Show:</span
-        >
-        <select
-          v-model="queryParams.limit"
-          @change="handleLimitChange"
-          class="bg-slate-50 border-none rounded-2xl py-3 px-4 text-sm font-bold text-slate-600 focus:ring-2 focus:ring-blue-500/10 outline-none"
-        >
-          <option :value="10">10</option>
-          <option :value="20">20</option>
-          <option :value="50">50</option>
-        </select>
-      </div>
-    </div>
-
+    <!-- ตาราง Tasks -->
     <div
       class="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden relative transition-all"
     >
+      <!-- Overlay ตอนกำลังโหลด -->
       <div
         v-if="isLoading"
         class="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-20 flex items-center justify-center"
@@ -181,6 +167,7 @@ const formatDate = (date) => dayjs(date).format("DD/MM/YYYY");
               :key="task.id"
               class="hover:bg-slate-50/40 transition-colors group"
             >
+              <!-- ชื่องาน + labels -->
               <td class="px-6 py-5">
                 <div class="flex flex-col gap-1.5">
                   <span
@@ -204,6 +191,8 @@ const formatDate = (date) => dayjs(date).format("DD/MM/YYYY");
                   </div>
                 </div>
               </td>
+
+              <!-- Priority -->
               <td class="px-6 py-5">
                 <div
                   :style="{ color: task.priority.color }"
@@ -213,6 +202,8 @@ const formatDate = (date) => dayjs(date).format("DD/MM/YYYY");
                   {{ task.priority.label }}
                 </div>
               </td>
+
+              <!-- Status -->
               <td class="px-6 py-5 text-center">
                 <span
                   :style="{ backgroundColor: task.status.color }"
@@ -221,16 +212,18 @@ const formatDate = (date) => dayjs(date).format("DD/MM/YYYY");
                   {{ task.status.label }}
                 </span>
               </td>
+
+              <!-- Assignee — แก้ไขตรงนี้ ใช้ getAssignee() แทน task.assignee -->
               <td class="px-6 py-5">
-                <div v-if="task.assignee" class="flex items-center gap-2">
+                <div v-if="getAssignee(task)" class="flex items-center gap-2">
                   <div
                     class="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-[11px] font-bold text-white shadow-md"
                   >
-                    {{ task.assignee.name.charAt(0) }}
+                    {{ getAssignee(task).name.charAt(0) }}
                   </div>
                   <div class="flex flex-col">
                     <span class="text-xs font-bold text-slate-700">{{
-                      task.assignee.name
+                      getAssignee(task).name
                     }}</span>
                     <span class="text-[9px] text-slate-400 font-medium"
                       >Team Member</span
@@ -244,6 +237,8 @@ const formatDate = (date) => dayjs(date).format("DD/MM/YYYY");
                   No Assignee
                 </div>
               </td>
+
+              <!-- Due Date -->
               <td class="px-6 py-5">
                 <div class="text-xs font-bold text-slate-600 flex flex-col">
                   <span>{{ formatDate(task.dueDate) }}</span>
@@ -257,34 +252,12 @@ const formatDate = (date) => dayjs(date).format("DD/MM/YYYY");
         </table>
       </div>
 
-      <div
-        class="p-6 border-t border-slate-50 flex flex-col sm:flex-row justify-between items-center bg-slate-50/20 gap-4"
-      >
-        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">
-          Page
-          <span class="text-blue-600 font-black">{{
-            pagination.currentPage
-          }}</span>
-          / {{ pagination.totalPages }}
-        </p>
-
-        <div class="flex gap-2">
-          <button
-            @click="handlePageChange(queryParams.page - 1)"
-            :disabled="queryParams.page === 1"
-            class="px-5 py-2.5 text-xs font-black bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 hover:border-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95"
-          >
-            <i class="fa-solid fa-chevron-left mr-1"></i> BACK
-          </button>
-          <button
-            @click="handlePageChange(queryParams.page + 1)"
-            :disabled="queryParams.page === pagination.totalPages"
-            class="px-5 py-2.5 text-xs font-black bg-blue-600 text-white border border-blue-600 rounded-2xl hover:bg-blue-700 disabled:opacity-40 disabled:bg-slate-300 disabled:border-slate-300 disabled:cursor-not-allowed transition-all shadow-md active:scale-95"
-          >
-            NEXT <i class="fa-solid fa-chevron-right ml-1"></i>
-          </button>
-        </div>
-      </div>
+      <!-- Pagination -->
+      <Pagination
+        :currentPage="pagination.currentPage"
+        :totalPages="pagination.totalPages"
+        @change="handlePageChange"
+      />
     </div>
   </div>
 </template>

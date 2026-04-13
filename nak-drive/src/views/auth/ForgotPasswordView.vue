@@ -24,7 +24,7 @@ const handleResetPassword = async () => {
 
   try {
     // เชื่อมต่อ API ของคุณกอล์ฟที่นี่ (e.g., api.post('/auth/forgot-password', { email }))
-    const { data } = await api.post("/auth/forgot-password", {
+    const { data: _ } = await api.post("/auth/forgot-password", {
       email: email.value,
     });
     await alertSuccess(
