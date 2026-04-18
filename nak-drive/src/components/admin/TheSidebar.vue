@@ -1,67 +1,68 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
-import { RouterLink, useRouter } from "vue-router";
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
 
 const props = defineProps({
   isCollapsed: Boolean,
   isMobileOpen: Boolean,
-});
+})
 
-const emit = defineEmits(["closeMobile"]);
-const router = useRouter();
-const showProfileMenu = ref(false);
+const emit = defineEmits(['closeMobile'])
+const router = useRouter()
+const showProfileMenu = ref(false)
 
 const userData = ref({
-  name: "Natthavut K.",
-  role: "Administrator",
-});
+  name: 'Natthavut K.',
+  role: 'Administrator',
+})
 
-const pendingTasksCount = ref(12);
+const pendingTasksCount = ref(12)
 
 const toggleProfileMenu = () => {
-  showProfileMenu.value = !showProfileMenu.value;
-};
+  showProfileMenu.value = !showProfileMenu.value
+}
 
 const handleLogout = () => {
-  router.push("/login");
-};
+  router.push('/login')
+}
 
 const closeMobile = () => {
-  emit("closeMobile");
-};
+  emit('closeMobile')
+}
 
 const handleOutsideClick = (e) => {
-  if (!e.target.closest("#profile-btn")) {
-    showProfileMenu.value = false;
+  if (!e.target.closest('#profile-btn')) {
+    showProfileMenu.value = false
   }
-};
+}
 
-onMounted(() => document.addEventListener("click", handleOutsideClick));
-onUnmounted(() => document.removeEventListener("click", handleOutsideClick));
+onMounted(() => document.addEventListener('click', handleOutsideClick))
+onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
 
 const mainMenus = [
-  { to: "/admin/dashboard", icon: "fa-gauge-high", text: "Overview" },
+  { to: '/admin/dashboard', icon: 'fa-gauge-high', text: 'Overview' },
   {
-    to: "/admin/tasks",
-    icon: "fa-list-check",
-    text: "Task Management",
+    to: '/admin/tasks',
+    icon: 'fa-list-check',
+    text: 'Task Management',
     badge: true,
   },
-];
+]
 
 const systemMenus = [
-  { to: "/admin/users", icon: "fa-user-group", text: "Team Members" },
+  { to: '/admin/users', icon: 'fa-user-group', text: 'Team Members' },
   {
-    to: "/admin/system/task-settings",
-    icon: "fa-sliders",
-    text: "Task Settings",
+    to: '/admin/system/task-settings',
+    icon: 'fa-sliders',
+    text: 'Task Settings',
   },
-  { to: "/admin/system/labels", icon: "fa-tags", text: "Labels" },
-];
+  { to: '/admin/system/labels', icon: 'fa-tags', text: 'Labels' },
+  { to: '/admin/status-task', icon: ' fa-list-check', text: 'Status Task' },
+]
 
 const avatarInitial = computed(() =>
   userData.value.name.charAt(0).toUpperCase(),
-);
+)
 </script>
 
 <template>
@@ -153,7 +154,7 @@ const avatarInitial = computed(() =>
                 v-if="menu.badge && pendingTasksCount > 0"
                 class="absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] px-1 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center"
               >
-                {{ pendingTasksCount > 9 ? "9+" : pendingTasksCount }}
+                {{ pendingTasksCount > 9 ? '9+' : pendingTasksCount }}
               </span>
             </div>
             <span v-if="!props.isCollapsed" class="flex-1 truncate">{{
@@ -308,12 +309,12 @@ const avatarInitial = computed(() =>
               class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] transition-all duration-150"
               style="color: #475569"
               onmouseenter="
-                this.style.backgroundColor = '#f8fafc';
-                this.style.color = '#1e293b';
+                this.style.backgroundColor = '#f8fafc'
+                this.style.color = '#1e293b'
               "
               onmouseleave="
-                this.style.backgroundColor = 'transparent';
-                this.style.color = '#475569';
+                this.style.backgroundColor = 'transparent'
+                this.style.color = '#475569'
               "
             >
               <i
@@ -327,12 +328,12 @@ const avatarInitial = computed(() =>
               class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] transition-all duration-150"
               style="color: #475569"
               onmouseenter="
-                this.style.backgroundColor = '#f8fafc';
-                this.style.color = '#1e293b';
+                this.style.backgroundColor = '#f8fafc'
+                this.style.color = '#1e293b'
               "
               onmouseleave="
-                this.style.backgroundColor = 'transparent';
-                this.style.color = '#475569';
+                this.style.backgroundColor = 'transparent'
+                this.style.color = '#475569'
               "
             >
               <i

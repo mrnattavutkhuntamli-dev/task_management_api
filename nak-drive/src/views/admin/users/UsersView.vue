@@ -1,11 +1,11 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import { ref, reactive, onMounted, watch, computed } from 'vue' // แก้ไข import จาก vue เท่านั้น
 import api from '@/api/axios'
 import { useFetchList } from '@/composites/admin/users/useFetchList'
 import { getUploadUrl } from '@/api/axios'
 import { useAuthStore } from '@/stores/auth'
 import dayjs from 'dayjs'
-import { alertSuccess, alertError } from '@/utils/alert'
+import { alertSuccess, alertError, alertConfirm } from '@/utils/alert'
 
 // Components
 import Pagination from '@/components/common/Pagination.vue'
@@ -137,7 +137,7 @@ const handleSubmit = async () => {
     formData.append('name', form.name)
     formData.append('email', form.email)
     formData.append('role', form.role)
-    if (modalMode.value === 'create') formData.append('password', form.password)
+    formData.append('password', form.password)
     if (form.avatarFile) formData.append('file', form.avatarFile)
 
     if (modalMode.value === 'create') {
@@ -157,11 +157,29 @@ const handleSubmit = async () => {
   }
 }
 
-const handleDelete = (user: User) => {
-  if (isMe(user.id)) return
-  if (confirm(`ยืนยันการลบคุณ ${user.name} ออกจากระบบ?`)) {
-    console.log('Delete User:', user.id)
-    // API Delete logic here
+const handleDelete = async (user: User) => {
+  isSubmitting.value = true
+  try {
+    if (isMe(user.id)) {
+      alertError(
+        'ไม่สามารถดำเนินการได้',
+        'คุณไม่สามารถลบชื่อผู้ใช้งานของตัวเองได้',
+      )
+      return
+    }
+    const result = await alertConfirm(
+      'ยืนยันการลบ?',
+      `คุณต้องการลบคุณ ${user.name} ออกจากระบบใช่หรือไม่?`,
+    )
+    if (!result.isConfirmed) return
+    await api.delete(`/users/${user.id}`)
+    alertSuccess('ลบข้อมูลพนักงานสำเร็จ')
+    loadData()
+  } catch (error: any) {
+    console.error('Delete Error:', error)
+    alertError('เกิดข้อผิดพลาด', error.message)
+  } finally {
+    isSubmitting.value = false
   }
 }
 
@@ -439,17 +457,15 @@ onMounted(loadData)
               placeholder="john@example.com"
             />
           </div>
-          <div v-if="modalMode === 'create'">
-            <label
-              class="block text-[10px] font-black uppercase text-slate-400 mb-2"
-              >Password</label
-            >
-            <input
-              v-model="form.password"
-              type="password"
-              class="w-full px-5 py-4 rounded-2xl border border-slate-100 bg-slate-50/50 focus:bg-white outline-none text-sm font-bold"
-            />
-          </div>
+          <label
+            class="block text-[10px] font-black uppercase text-slate-400 mb-2"
+            >Password</label
+          >
+          <input
+            v-model="form.password"
+            type="password"
+            class="w-full px-5 py-4 rounded-2xl border border-slate-100 bg-slate-50/50 focus:bg-white outline-none text-sm font-bold"
+          />
           <div>
             <label
               class="block text-[10px] font-black uppercase text-slate-400 mb-2"

@@ -1,39 +1,39 @@
 <script setup lang="ts">
-import { reactive, ref, computed } from "vue";
-import { useRouter } from "vue-router";
-import api from "../../api/axios";
-import { useAuthStore } from "../../stores/auth";
-import { alertError, alertSuccess } from "../../utils/alert";
+import { reactive, ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import api from '../../api/axios'
+import { useAuthStore } from '../../stores/auth'
+import { alertError, alertSuccess } from '../../utils/alert'
 
-const router = useRouter();
-const authStore = useAuthStore();
+const router = useRouter()
+const authStore = useAuthStore()
 
-const form = reactive({ email: "", password: "" });
-const remember = ref(false);
-const isPasswordVisible = ref(false);
-const isLoading = ref(false);
+const form = reactive({ email: '', password: '' })
+const remember = ref(false)
+const isPasswordVisible = ref(false)
+const isLoading = ref(false)
 
-const errors = reactive({ email: "", password: "" });
+const errors = reactive({ email: '', password: '' })
 
 const validateEmail = () => {
   if (!form.email) {
-    errors.email = "กรุณากรอกอีเมล";
+    errors.email = 'กรุณากรอกอีเมล'
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-    errors.email = "รูปแบบอีเมลไม่ถูกต้อง";
+    errors.email = 'รูปแบบอีเมลไม่ถูกต้อง'
   } else {
-    errors.email = "";
+    errors.email = ''
   }
-};
+}
 
 const validatePassword = () => {
   if (!form.password) {
-    errors.password = "กรุณากรอกรหัสผ่าน";
+    errors.password = 'กรุณากรอกรหัสผ่าน'
   } else if (form.password.length < 6) {
-    errors.password = "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร";
+    errors.password = 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'
   } else {
-    errors.password = "";
+    errors.password = ''
   }
-};
+}
 
 const isFormValid = computed(() => {
   return (
@@ -41,45 +41,53 @@ const isFormValid = computed(() => {
     form.password.length > 0 &&
     !errors.email &&
     !errors.password
-  );
-});
+  )
+})
 
 const handleLogin = async () => {
-  validateEmail();
-  validatePassword();
-  if (!isFormValid.value) return;
+  validateEmail()
+  validatePassword()
+  if (!isFormValid.value) return
 
-  isLoading.value = true;
+  isLoading.value = true
   try {
-    const { data } = await api.post("/auth/login", form);
+    const { data } = await api.post('/auth/login', form)
 
     if (data.statusCode == 200 || data.statusCode == 201) {
-      const { access_token, user } = data.data;
+      const { access_token, user } = data.data
       const payload = {
         id: user.id,
         name: user.name,
         role: user.role,
-      };
-      authStore.setToken(access_token);
-      authStore.setUser(payload);
-      alertSuccess("เข้าสู่ระบบสำเร็จ", "เข้าสู่ระบบเรียบร้อยแล้ว");
-      router.push({ name: "AdminDashboard" });
+      }
+      authStore.setToken(access_token)
+      authStore.setUser(payload)
+      let pathRedirect = { name: '/' }
+      alertSuccess('เข้าสู่ระบบสำเร็จ', 'เข้าสู่ระบบเรียบร้อยแล้ว')
+      if (payload.role === 'admin') {
+        pathRedirect = { name: 'AdminDashboard' }
+      }
+      if (payload.role === 'user') {
+        pathRedirect = { name: 'UserDashboard' }
+      }
+      alertSuccess('เข้าสู่ระบบสำเร็จ', 'เข้าสู่ระบบเรียบร้อยแล้ว')
+      router.push(pathRedirect)
     } else {
       alertError(
-        "เข้าสู่ระบบไม่สำเร็จ",
-        "ข้อมูลไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง",
-      );
+        'เข้าสู่ระบบไม่สำเร็จ',
+        'ข้อมูลไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง',
+      )
     }
   } catch (err: any) {
-    console.error("Login Error:", err);
+    console.error('Login Error:', err)
     // ดึง message จาก Backend มาโชว์จะดูเป็นมืออาชีพกว่าครับ
     const errorMsg =
-      err.response?.data?.message || "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
-    alertError("เข้าสู่ระบบไม่สำเร็จ", errorMsg);
+      err.response?.data?.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง'
+    alertError('เข้าสู่ระบบไม่สำเร็จ', errorMsg)
   } finally {
-    isLoading.value = false;
+    isLoading.value = false
   }
-};
+}
 </script>
 
 <template>
